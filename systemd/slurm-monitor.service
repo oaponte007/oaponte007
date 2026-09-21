@@ -1,0 +1,16 @@
+[Unit]
+Description=Slurm cluster monitoring and auto-remediation agent
+After=network-online.target slurmctld.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=slurm
+Group=slurm
+ExecStart=/usr/local/bin/slurm-monitor --config /etc/slurm-monitor/slurm_monitor.yaml watch
+Restart=on-failure
+RestartSec=10
+StateDirectory=slurm-monitor
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,36 @@
+# Copy to /etc/slurm-monitor/slurm_monitor.yaml and adjust for your site.
+
+# Safety switch. While true, every state-changing scontrol command (drain,
+# resume, reconfigure) is logged instead of executed. Flip to false only
+# once you've watched a dry run and are comfortable with its decisions.
+dry_run: true
+
+# How often to poll node state, in seconds.
+poll_interval: 60
+
+# Rolling window used for the "same node, same problem" recurrence check.
+recurrence_window_hours: 24
+
+# Number of occurrences of the same (node, category) within the window
+# that triggers a forced drain + explanatory note. 2 means: the first time
+# is diagnosed (and self-healed if it's a known-safe transient category);
+# the second time within the window, stop retrying and drain the node.
+recurrence_threshold: 2
+
+# Where the occurrence/quarantine history is persisted (SQLite). Must be
+# writable by the user running the agent.
+db_path: /var/lib/slurm-monitor/history.db
+
+# Optional Slack-compatible incoming webhook URL for force-drain and
+# manual-review notifications. Leave unset to disable notifications.
+webhook_url: null
+
+# If the agent does not run on the compute nodes themselves, set this to
+# route diagnostic/remediation commands over SSH, e.g.:
+#   remote_exec: "ssh -o BatchMode=yes {node} -- {command}"
+# Leave unset to run commands directly on the local host (typical when the
+# agent runs on the Slurm controller and only issues scontrol/sinfo, which
+# are cluster-wide).
+remote_exec: null
+
+log_level: INFO
