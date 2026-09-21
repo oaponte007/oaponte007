@@ -138,6 +138,50 @@ def test_quarantined_node_is_left_alone_on_subsequent_polls(history):
     assert drain_calls_after_third_poll == drain_calls_after_second_poll
 
 
+def test_every_decision_is_written_to_the_audit_log(history):
+    node = make_node("node047", "DRAINED", "Low RealMemory")
+    client = FakeSlurmClient([node])
+    agent = Agent(client, history, notifier=Notifier(None))
+
+    t0 = datetime(2026, 1, 1, 9, 0, 0)
+    agent.poll_once(now=t0)
+
+    entries = history.query_actions(node="node047")
+    assert len(entries) == 1
+    assert entries[0].action == "manual_review"
+    assert entries[0].reason == "Low RealMemory"
+
+
+def test_force_drain_and_resume_log_their_success_flag(history):
+    drain_node = make_node("node047", "DRAINED", "Low RealMemory")
+    resume_node = make_node("node012", "DOWN*", "Node is not responding")
+    client = FakeSlurmClient([drain_node, resume_node])
+    agent = Agent(client, history, notifier=Notifier(None))
+
+    t0 = datetime(2026, 1, 1, 9, 0, 0)
+    agent.poll_once(now=t0)
+    agent.poll_once(now=t0 + timedelta(hours=1))  # triggers the force_drain on node047
+
+    drain_entry = history.query_actions(node="node047", action="force_drain")[0]
+    assert drain_entry.success is True
+    assert drain_entry.occurrences_in_window == 2
+
+    resume_entry = history.query_actions(node="node012", action="resume")[0]
+    assert resume_entry.success is True
+
+
+def test_ignored_admin_drains_are_still_logged_for_full_audit_trail(history):
+    node = make_node("node099", "DRAINED", "Administrator requested maintenance")
+    client = FakeSlurmClient([node])
+    agent = Agent(client, history, notifier=Notifier(None))
+
+    agent.poll_once(now=datetime(2026, 1, 1, 9, 0, 0))
+
+    entries = history.query_actions(node="node099")
+    assert len(entries) == 1
+    assert entries[0].action == "ignore"
+
+
 def test_recovered_node_clears_quarantine(history):
     node = make_node("node047", "DRAINED", "Low RealMemory")
     client = FakeSlurmClient([node])

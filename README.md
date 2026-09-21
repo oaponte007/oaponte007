@@ -132,6 +132,61 @@ issue and resuming the node yourself):
 slurm-monitor resolve node047 --category low_real_memory
 ```
 
+### Audit log for periodic review
+
+Every decision the agent makes — `ignore`, `resume`, `manual_review`, and
+`force_drain` — is written to a persistent, queryable audit trail (a
+SQLite `actions` table alongside the recurrence-tracking history), not
+just printed to the log-of-the-moment. This is what makes it practical for
+an admin to periodically sit down and look for patterns across the whole
+fleet instead of piecing it together from `journalctl`.
+
+```bash
+# everything from the last 24h (default), or filter it down:
+slurm-monitor log
+slurm-monitor log --node node047
+slurm-monitor log --action force_drain --since 7d
+slurm-monitor log --since 2026-01-01T00:00:00 --format csv > drains.csv
+slurm-monitor log --format json   # for feeding into another tool
+```
+
+A periodic digest, meant to be skimmed (or emailed/cron'd) rather than
+read line by line:
+
+```bash
+slurm-monitor report --since 7d
+```
+
+```
+slurm-monitor action report: since 2026-01-08T00:00:00Z (41 action(s))
+
+By action:
+  manual_review  22
+  resume         14
+  force_drain    4
+  ignore         1
+
+Force-drained (4) -- needs investigation:
+  2026-01-09T03:14:02  node047     low_real_memory
+  2026-01-11T22:40:11  node118     gpu_failure
+  ...
+
+Flagged for manual review (22), by node/category:
+  node118     gpu_failure           x6
+  node047     low_real_memory       x3
+  ...
+
+WARNING: 1 action(s) the agent attempted did not succeed (scontrol/systemctl
+command failed) -- check `slurm-monitor log --action force_drain` / `resume`
+and cluster connectivity.
+```
+
+The "flagged for manual review, by node/category" and "force-drained"
+sections are exactly what surfaces the harder problems worth an admin's
+time: a node/category pair showing up repeatedly in manual review (even
+without yet crossing the 24h recurrence threshold) is a signal worth
+investigating before it becomes a force-drain.
+
 Once you trust the dry-run decisions, install the systemd unit:
 
 ```bash

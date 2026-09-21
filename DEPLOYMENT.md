@@ -125,6 +125,26 @@ every 60s per `poll_interval`), as the `slurm` user, restarting on failure.
   for `force_drain` and `manual_review` events — those are the ones that
   need a human. `resume` events are the agent successfully self-healing
   and need no action.
+- **Review the audit trail periodically**, not just the live log stream.
+  Every decision is persisted to `db_path` and queryable with
+  `slurm-monitor log`/`slurm-monitor report` (see the README) even after
+  the agent has restarted. A good habit is a weekly
+  `slurm-monitor report --since 7d`, either run by hand or piped somewhere
+  admins actually look:
+
+  ```bash
+  # weekly digest via cron, e.g. /etc/cron.d/slurm-monitor-report:
+  0 8 * * 1 slurm /opt/slurm-monitor/venv/bin/slurm-monitor \
+      --config /etc/slurm-monitor/slurm_monitor.yaml report --since 7d \
+      | mail -s "slurm-monitor weekly report" hpc-admins@example.com
+  ```
+
+  The report's "flagged for manual review, by node/category" breakdown is
+  the most useful part for finding the *harder* problems: a node/category
+  pair that keeps showing up there — even if it never quite crosses the
+  24h recurrence threshold into a force-drain — is exactly the kind of
+  recurring-but-not-yet-automatic-drain pattern worth a human digging into
+  before it does.
 - **When a node gets auto-drained**, its `Reason=` field is the
   explanation (`scontrol show node <name>` or `sinfo -R` shows it
   directly) — no need to dig through logs to find out why. Investigate

@@ -80,3 +80,19 @@ class Decision:
     action: str  # "ignore" | "attempt_fix" | "resume" | "force_drain" | "manual_review"
     note: str = ""
     occurrences_in_window: int = 1
+
+
+@dataclass
+class ActionLogEntry:
+    """One row of the persistent audit trail -- every decision the agent
+    ever made, for admins to review periodically (`slurm-monitor log`)."""
+
+    ts: datetime
+    node: str
+    category: str
+    action: str
+    reason: str
+    note: str
+    success: Optional[bool]
+    occurrences_in_window: int
+    id: Optional[int] = None

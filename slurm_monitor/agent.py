@@ -122,13 +122,17 @@ class Agent:
 
         if category is Category.ADMIN_DRAIN:
             log.debug("node %s: admin-initiated drain, leaving alone", node)
-            return Decision(node, category, "ignore", "admin-initiated drain; agent does not act on these")
+            decision = Decision(node, category, "ignore", "admin-initiated drain; agent does not act on these")
+            self._log(decision, node_state.reason, now)
+            return decision
 
         if self.history.is_quarantined(node, category.value):
-            return Decision(
+            decision = Decision(
                 node, category, "manual_review",
                 "already force-drained for this recurring issue; awaiting manual `State=RESUME`",
             )
+            self._log(decision, node_state.reason, now)
+            return decision
 
         prior = self.history.prior_occurrences(node, category.value, now)
         occurrence_count = len(prior) + 1
@@ -144,7 +148,10 @@ class Agent:
                 f"[slurm-monitor] force-drained {node}",
                 note if drained else f"{note}\n\n(WARNING: scontrol drain command failed, check logs)",
             )
-            return Decision(node, category, "force_drain", note, occurrences_in_window=occurrence_count)
+            decision = Decision(node, category, "force_drain", note, occurrences_in_window=occurrence_count)
+            self._log(decision, node_state.reason, now, success=drained,
+                      occurrences_in_window=occurrence_count)
+            return decision
 
         # first sighting within the window: record, diagnose, maybe self-heal
         self.history.record(node, category.value, node_state.reason, now, action="observed")
@@ -154,14 +161,39 @@ class Agent:
             fix = remediation.attempt_fix(report, self.client, self.remote_exec)
             if fix.attempted and fix.succeeded:
                 note = f"auto-resumed by slurm-monitor after applying fix: {fix.detail}"
-                remediation.resume(self.client, node, note)
-                return Decision(node, category, "resume", note)
+                resumed = remediation.resume(self.client, node, note)
+                decision = Decision(node, category, "resume", note)
+                self._log(decision, node_state.reason, now, success=resumed)
+                return decision
             if fix.attempted:
                 log.warning("auto-fix attempted but failed for %s/%s: %s", node, category.value, fix.detail)
+                note = format_report(report) + f"\n\nAuto-fix attempt failed: {fix.detail}"
+                decision = Decision(node, category, "manual_review", note)
+                self._log(decision, node_state.reason, now, success=False)
+                self.notifier.notify(
+                    f"[slurm-monitor] {node} needs review: {CATEGORY_INFO[category]['title']}", note)
+                return decision
 
         self.notifier.notify(f"[slurm-monitor] {node} needs review: {CATEGORY_INFO[category]['title']}",
                               format_report(report))
-        return Decision(node, category, "manual_review", format_report(report))
+        decision = Decision(node, category, "manual_review", format_report(report))
+        self._log(decision, node_state.reason, now)
+        return decision
+
+    def _log(self, decision: Decision, raw_reason: str, now: datetime,
+              success: Optional[bool] = None, occurrences_in_window: Optional[int] = None) -> None:
+        """Append this decision to the persistent audit trail (history.py's
+        `actions` table), for `slurm-monitor log`/`report` to surface later."""
+        self.history.log_action(
+            node=decision.node,
+            category=decision.category.value,
+            action=decision.action,
+            reason=raw_reason,
+            note=decision.note,
+            ts=now,
+            success=success,
+            occurrences_in_window=occurrences_in_window or decision.occurrences_in_window,
+        )
 
     def run_forever(self) -> None:
         log.info("slurm-monitor agent starting (poll_interval=%ss, recurrence_threshold=%s, dry_run=%s)",

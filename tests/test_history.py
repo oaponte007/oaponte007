@@ -81,6 +81,57 @@ def test_prior_occurrences_ordered_and_scoped(history):
     assert [o.detected_at for o in prior] == [t0, t1]
 
 
+def test_log_action_and_query_roundtrip(history):
+    t0 = datetime(2026, 1, 1, 9, 0, 0)
+    history.log_action(
+        node="node047", category="low_real_memory", action="manual_review",
+        reason="Low RealMemory", note="diagnostic report text", ts=t0, success=None,
+        occurrences_in_window=1,
+    )
+
+    entries = history.query_actions()
+    assert len(entries) == 1
+    e = entries[0]
+    assert e.node == "node047"
+    assert e.action == "manual_review"
+    assert e.success is None
+    assert e.ts == t0
+
+
+def test_query_actions_filters_by_node_category_action(history):
+    t0 = datetime(2026, 1, 1, 9, 0, 0)
+    history.log_action(node="node047", category="low_real_memory", action="manual_review",
+                        reason="Low RealMemory", note="", ts=t0)
+    history.log_action(node="node047", category="low_real_memory", action="force_drain",
+                        reason="Low RealMemory", note="", ts=t0 + timedelta(hours=5), success=True,
+                        occurrences_in_window=2)
+    history.log_action(node="node012", category="not_responding", action="resume",
+                        reason="Node is not responding", note="", ts=t0, success=True)
+
+    assert len(history.query_actions(node="node047")) == 2
+    assert len(history.query_actions(category="not_responding")) == 1
+    assert len(history.query_actions(action="force_drain")) == 1
+
+    force_drain = history.query_actions(action="force_drain")[0]
+    assert force_drain.success is True
+    assert force_drain.occurrences_in_window == 2
+
+
+def test_query_actions_since_filter_and_ordering(history):
+    t0 = datetime(2026, 1, 1, 9, 0, 0)
+    history.log_action(node="node047", category="x", action="ignore", reason="", note="", ts=t0)
+    history.log_action(node="node047", category="x", action="ignore", reason="", note="",
+                        ts=t0 + timedelta(hours=2))
+
+    recent = history.query_actions(since=t0 + timedelta(hours=1))
+    assert len(recent) == 1
+    assert recent[0].ts == t0 + timedelta(hours=2)
+
+    all_entries = history.query_actions()
+    # newest first
+    assert all_entries[0].ts > all_entries[1].ts
+
+
 def test_history_survives_reopen(tmp_path):
     db_path = tmp_path / "history.db"
     t0 = datetime(2026, 1, 1, 12, 0, 0)
