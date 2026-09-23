@@ -17,6 +17,13 @@ so an admin doesn't get stuck babysitting an endless
 > *whether* to drain it; `slurm-monitor` runs centrally watching what
 > already happened to any node's `Reason=` field, `chpc`'s included, and
 > decides whether to keep retrying or stop. See `CHPC_MANUAL.md` for chpc.
+>
+> **And [`jacamar/install_jacamar_ci.sh`](JACAMAR_CI_SETUP.md)** — an
+> interactive installer/configurator for
+> [Jacamar CI](https://gitlab.com/ecp-ci/jacamar-ci) (GitLab's HPC-focused
+> custom-executor driver), on top of GitLab Runner. See
+> `JACAMAR_CI_SETUP.md` — including which parts to double-check against
+> your own Jacamar CI version before a production run.
 
 ## How it decides what to do
 
