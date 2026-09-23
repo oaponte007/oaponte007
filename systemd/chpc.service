@@ -1,0 +1,43 @@
+[Unit]
+Description=Coastal HPC Node Health Checker (chpc)
+Documentation=file:///opt/chpc/CHPC_MANUAL.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/chpc --config /etc/chpc/chpc.yaml run
+Restart=on-failure
+RestartSec=10
+
+# Real CPU pinning happens in-process via os.sched_setaffinity() (see
+# chpc/cpuaffinity.py) so it works identically on RHEL/Rocky 8 (systemd 239,
+# cgroup v1 by default), 9, and 10. CPUAffinity= is a second, independent
+# layer: unlike AllowedCPUs= (which needs the unified/v2 cgroup hierarchy
+# and systemd >= 244, and is a no-op on RHEL8's defaults), CPUAffinity= has
+# been supported since long before RHEL7 and works the same on all three.
+CPUAffinity=0
+Nice=10
+
+# On RHEL/Rocky 9 or 10 hosts *already* running the unified cgroup
+# hierarchy (`stat -fc %T /sys/fs/cgroup` reports "cgroup2fs"), you can
+# uncomment this for a second, cgroup-enforced layer. Leave it commented on
+# RHEL8 defaults -- it is silently ignored there, which is harmless, but
+# there is no benefit to enabling it on a v1 host either.
+# AllowedCPUs=0
+
+StateDirectory=chpc
+LogsDirectory=chpc
+
+# Nothing chpc does needs elevated privilege beyond invoking
+# scontrol/pbsnodes (ordinary cluster client commands) and reading
+# /proc, /sys, and its own config -- so NoNewPrivileges is safe everywhere.
+# We deliberately skip ProtectSystem=/ProtectHome= here: their exact
+# interaction with munge's socket under /run and site-specific Slurm/PBS
+# client paths varies enough across RHEL 8/9/10 that it's safer to leave
+# the filesystem namespace alone and let normal file permissions do the
+# job. Harden further once you've verified it against your own site paths.
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

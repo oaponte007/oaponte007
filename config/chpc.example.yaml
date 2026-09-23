@@ -1,0 +1,50 @@
+# Copy to /etc/chpc/chpc.yaml and adjust for your site.
+# `chpc install` will write sensible defaults for the paths below if you
+# don't hand it a config at all -- this file is for when you want to
+# override something (threshold, cores, RM backend flags).
+
+# Safety switch. While true, every state-changing command (scontrol/
+# pbsnodes drain or resume) is logged instead of executed. Flip to false
+# only once you've watched `chpc check` / `chpc run --once` output and are
+# comfortable with what it decides.
+dry_run: true
+
+# How often the daemon evaluates checks.conf, in seconds.
+check_interval: 60
+
+# Consecutive failed cycles required before chpc actually drains the node.
+# At the default 60s interval and threshold 3, that's ~3 minutes of
+# confirmed failure before anything happens -- long enough to ride out a
+# single transient blip without being so long a real fault sits unflagged.
+failure_threshold: 3
+
+# CPU core(s) chpc pins itself (and everything it shells out to) to. Keep
+# this to exactly one core on a compute node so chpc never competes with
+# job CPU time. See CHPC_MANUAL.md for the RHEL8-vs-9/10 cgroup note.
+cpu_affinity: [0]
+
+# auto | slurm | pbs | none
+resource_manager: auto
+
+checks_file: /etc/chpc/checks.conf
+baseline_file: /etc/chpc/baseline.yaml
+state_db: /var/lib/chpc/state.db
+log_file: /var/log/chpc/chpc.log
+log_level: INFO
+
+# Check names chpc may resume on its own once they pass again, with NO
+# human involved. Empty by default. Only add a check here if you're certain
+# a pass/fail flap for it is safe to clear unattended -- e.g. a mount that
+# blips during an NFS server restart, never a hardware-adjacent check like
+# check_real_memory or check_gpu_count.
+auto_resume_categories: []
+
+# Resource-manager backend overrides (argv fragments, not shell strings --
+# see backends/base.py for why that matters).
+slurm_binary: scontrol
+pbs_binary: pbsnodes
+pbs_offline_flag: "-o"
+pbs_note_flag: "-N"
+pbs_clear_flag: "-c"
+
+command_timeout: 20

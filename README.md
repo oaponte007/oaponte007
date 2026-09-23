@@ -10,6 +10,14 @@ retrying and force-drains the node with a note explaining exactly why**,
 so an admin doesn't get stuck babysitting an endless
 `job → cleanup failure → drain → resume → job → drain` loop.
 
+> **This repo also contains [`chpc`](CHPC_MANUAL.md)** — Coastal HPC's
+> per-node health checker (an improved, open NHC alternative: install-time
+> baseline, debounced checks, Slurm **and** PBS/PBS Pro support). The two
+> tools are complementary: `chpc` runs on each compute node deciding
+> *whether* to drain it; `slurm-monitor` runs centrally watching what
+> already happened to any node's `Reason=` field, `chpc`'s included, and
+> decides whether to keep retrying or stop. See `CHPC_MANUAL.md` for chpc.
+
 ## How it decides what to do
 
 For every node currently in a `DRAIN`/`DRAINED`/`DOWN`-like state:

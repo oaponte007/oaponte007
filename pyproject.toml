@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "slurm-monitor"
+name = "coastal-hpc-tools"
 version = "0.1.0"
-description = "Autonomous Slurm cluster monitoring and remediation agent"
+description = "Coastal HPC cluster tooling: slurm-monitor (controller-side Slurm remediation agent) and chpc (per-node health checker for Slurm/PBS/PBS Pro)"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
@@ -15,9 +15,10 @@ dependencies = [
 
 [project.scripts]
 slurm-monitor = "slurm_monitor.cli:main"
+chpc = "chpc.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["slurm_monitor*"]
+include = ["slurm_monitor*", "chpc*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "tests_chpc"]
