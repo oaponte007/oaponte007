@@ -5,6 +5,7 @@ from chpc.checks.builtin import (
     BUILTIN_CHECKS,
     check_command,
     check_cpu_count,
+    check_dir_size,
     check_disk_usage,
     check_gpu_count,
     check_load_average,
@@ -29,7 +30,7 @@ def test_parse_kv_bool_flag():
 
 def test_all_builtin_names_are_registered():
     for name in ("check_real_memory", "check_cpu_count", "check_load_average",
-                 "check_disk_usage", "check_swap_usage", "check_mount_present",
+                 "check_disk_usage", "check_dir_size", "check_swap_usage", "check_mount_present",
                  "check_zombie_processes", "check_gpu_count", "check_network_interface",
                  "command"):
         assert name in BUILTIN_CHECKS
@@ -106,6 +107,121 @@ class TestDiskUsage:
     def test_bad_path_fails(self):
         ctx = CheckContext(hostname="n1")
         result = check_disk_usage(["--path", "/definitely/not/a/real/path/xyz"], ctx)
+        assert not result.ok
+
+    def test_works_on_a_plain_directory_not_just_a_mount(self, tmp_path):
+        # shutil.disk_usage reports the containing filesystem regardless of
+        # whether `path` is itself a mount point -- this is what makes
+        # check_disk_usage usable on "any directory that could interfere
+        # with a job", not only dedicated mounts.
+        sub = tmp_path / "some" / "nested" / "job_dir"
+        sub.mkdir(parents=True)
+        ctx = CheckContext(hostname="n1")
+        result = check_disk_usage(["--path", str(sub), "--max-percent", "100"], ctx)
+        assert result.ok
+        assert str(sub) in result.detail
+
+    def test_inode_percent_not_checked_when_flag_omitted(self, tmp_path):
+        ctx = CheckContext(hostname="n1")
+        result = check_disk_usage(["--path", str(tmp_path), "--max-percent", "100"], ctx)
+        assert "inodes_used" not in result.detail
+
+    @staticmethod
+    def _fake_statvfs(f_ffree, f_files=1000):
+        # shutil.disk_usage also calls os.statvfs() internally, so the fake
+        # needs the block-based fields too (arbitrary but internally
+        # consistent), not just the inode fields under test.
+        class FakeStatvfs:
+            pass
+
+        s = FakeStatvfs()
+        s.f_frsize = 4096
+        s.f_blocks = 1000
+        s.f_bfree = 500
+        s.f_bavail = 500
+        s.f_files = f_files
+        s.f_ffree = f_ffree
+        return s
+
+    def test_inode_percent_failure(self, tmp_path, monkeypatch):
+        import os as os_module
+
+        monkeypatch.setattr(os_module, "statvfs", lambda path: self._fake_statvfs(f_ffree=50))
+        ctx = CheckContext(hostname="n1")
+        result = check_disk_usage(
+            ["--path", str(tmp_path), "--max-percent", "100", "--max-inode-percent", "90"], ctx
+        )
+        assert not result.ok
+        assert "inodes_used=95.0%" in result.detail
+
+    def test_inode_percent_passes_under_threshold(self, tmp_path, monkeypatch):
+        import os as os_module
+
+        monkeypatch.setattr(os_module, "statvfs", lambda path: self._fake_statvfs(f_ffree=950))
+        ctx = CheckContext(hostname="n1")
+        result = check_disk_usage(
+            ["--path", str(tmp_path), "--max-percent", "100", "--max-inode-percent", "90"], ctx
+        )
+        assert result.ok
+
+
+class TestDirSize:
+    def _make_files(self, base, sizes):
+        base.mkdir(parents=True, exist_ok=True)
+        for i, size in enumerate(sizes):
+            (base / f"f{i}").write_bytes(b"x" * size)
+
+    def test_under_max_gb_passes(self, tmp_path):
+        self._make_files(tmp_path / "d", [1024, 2048])
+        ctx = CheckContext(hostname="n1")
+        result = check_dir_size(["--path", str(tmp_path / "d"), "--max-gb", "1"], ctx)
+        assert result.ok
+        assert "files=2" in result.detail
+
+    def test_over_max_gb_fails(self, tmp_path):
+        self._make_files(tmp_path / "d", [5000, 5000])
+        ctx = CheckContext(hostname="n1")
+        result = check_dir_size(["--path", str(tmp_path / "d"), "--max-gb", "0.000001"], ctx)
+        assert not result.ok
+
+    def test_max_files_threshold(self, tmp_path):
+        self._make_files(tmp_path / "d", [10] * 5)
+        ctx = CheckContext(hostname="n1")
+        result = check_dir_size(["--path", str(tmp_path / "d"), "--max-files", "3"], ctx)
+        assert not result.ok
+        assert "5 files > max 3" in result.detail
+
+    def test_max_percent_of_filesystem(self, tmp_path):
+        self._make_files(tmp_path / "d", [10])
+        ctx = CheckContext(hostname="n1")
+        # essentially any nonzero content is > 0% of a real filesystem's total
+        result = check_dir_size(["--path", str(tmp_path / "d"), "--max-percent", "0"], ctx)
+        assert not result.ok
+        assert "% of filesystem" in result.detail
+
+    def test_requires_path(self):
+        ctx = CheckContext(hostname="n1")
+        result = check_dir_size(["--max-gb", "1"], ctx)
+        assert not result.ok
+
+    def test_requires_at_least_one_threshold(self, tmp_path):
+        ctx = CheckContext(hostname="n1")
+        result = check_dir_size(["--path", str(tmp_path)], ctx)
+        assert not result.ok
+        assert "requires at least one" in result.detail
+
+    def test_scan_cap_reports_inconclusive_not_failure(self, tmp_path):
+        self._make_files(tmp_path / "d", [10] * 10)
+        ctx = CheckContext(hostname="n1")
+        result = check_dir_size(
+            ["--path", str(tmp_path / "d"), "--max-gb", "0.000001", "--max-scan", "3"], ctx
+        )
+        assert result.ok  # capped scan never reports a false failure
+        assert "capped" in result.detail
+
+    def test_bad_path_fails(self):
+        ctx = CheckContext(hostname="n1")
+        result = check_dir_size(["--path", "/definitely/not/a/real/path/xyz", "--max-gb", "1"], ctx)
         assert not result.ok
 
 

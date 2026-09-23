@@ -43,12 +43,29 @@ RECOVERY_INFO = {
         ],
     ),
     "check_disk_usage": (
-        "A monitored filesystem is above its configured usage threshold",
+        "A monitored filesystem is above its configured usage or inode threshold",
         [
             "Find what's using space: `du -xh --max-depth=2 <path> | sort -rh | head`.",
+            "If the detail mentions inodes: find directories with huge file counts instead of "
+            "size -- `find <path> -xdev -type d | while read d; do echo $(ls -1 \"$d\" | wc -l) "
+            "\"$d\"; done | sort -rn | head` (an inode table can fill even with free bytes, "
+            "usually from a job leaving millions of small files behind).",
             "Check for orphaned job scratch data, core dumps, or runaway logs.",
-            "Clear space or extend the filesystem, then verify: `df -h <path>`.",
+            "Clear space (or inodes) or extend the filesystem, then verify: `df -h <path>` / "
+            "`df -i <path>`.",
             "Once resolved: `chpc resume check_disk_usage`.",
+        ],
+    ),
+    "check_dir_size": (
+        "A specific directory's own footprint (not just its filesystem) exceeded its configured limit",
+        [
+            "Find the biggest offenders inside it: `du -xh --max-depth=1 <path> | sort -rh | head`.",
+            "This check walks the tree itself, so it also catches a directory outgrowing its "
+            "budget on a shared filesystem where the filesystem's overall percent-full wouldn't "
+            "isolate it -- e.g. one user's job scratch subdirectory.",
+            "Clean up or archive the offending files, or raise the threshold in checks.conf if "
+            "the new size is actually expected going forward.",
+            "Once resolved: `chpc resume check_dir_size`.",
         ],
     ),
     "check_swap_usage": (

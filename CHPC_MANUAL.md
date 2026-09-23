@@ -281,15 +281,41 @@ lines or reloading the file does not reset an existing check's history.
 | `check_real_memory` | `--tolerance-percent N` (default 2) | baseline `real_memory_kb` | Reads `/proc/meminfo` `MemTotal`. Skips (ok) if no baseline. |
 | `check_cpu_count` | `--tolerance N` (default 0) | baseline `cpu_count` | `os.cpu_count()`. Skips (ok) if no baseline. |
 | `check_load_average` | `--max-per-core F` (default 1.5) | fixed ceiling | `os.getloadavg()[0] / cpu_count`. |
-| `check_disk_usage` | `--path P` (default `/`), `--max-percent F` (default 90) | fixed ceiling | `shutil.disk_usage`. Repeat the line per mount you care about. |
+| `check_disk_usage` | `--path P` (default `/`), `--max-percent F` (default 90), `--max-inode-percent F` (optional) | fixed ceiling | `shutil.disk_usage`/`statvfs`. Reports the whole filesystem containing `path` — works identically for a dedicated mount or a plain directory. Repeat the line per mount/path you care about. The inode flag catches a full inode table (millions of small job files) even while byte usage looks fine. |
+| `check_dir_size` | `--path P` (required); at least one of `--max-gb F`, `--max-percent F` (of the containing filesystem's total), `--max-files N`; `--max-scan N` (default 2,000,000), `--follow-symlinks` (flag) | fixed ceiling(s) | Walks the tree and sums real file sizes/counts — this is *the directory's own footprint*, not the filesystem's, so it isolates one directory growing on a shared filesystem. If the scan hits `--max-scan` before reaching a verdict it reports an inconclusive **pass** (never a false failure) — raise `--max-scan` or narrow `--path` for very large trees. |
 | `check_swap_usage` | `--max-percent F` (default 50) | fixed ceiling | Passes automatically if no swap is configured. |
-| `check_mount_present` | `--path P` (required), `--fstype T` (optional) | fixed requirement | Reads `/proc/mounts`. |
+| `check_mount_present` | `--path P` (required), `--fstype T` (optional) | fixed requirement | Reads `/proc/mounts`. Existence only — pair with `check_disk_usage` on the same `--path` for capacity. |
 | `check_zombie_processes` | `--max N` (default 5) | fixed ceiling | Scans `/proc/<pid>/stat` for state `Z`. |
 | `check_gpu_count` | *(none)* | baseline `gpu_count` | Runs `nvidia-smi -L`. If `nvidia-smi` itself is missing and baseline expects 0 GPUs, that's a pass. Skips (ok) if no baseline. |
 | `check_network_interface` | `--iface NAME` (required), `--allow-down` (flag) | fixed requirement | Reads `/sys/class/net/<iface>/operstate`; `--allow-down` checks only presence, not link state. |
 | `command` | *(the raw shell command line)* | exit code | The escape hatch — anything you can script. |
 
 All flags accept either `--flag value` or `--flag=value`.
+
+**Draining on mount-point capacity, and on any directory:**
+
+```
+# A dedicated mount, existence + capacity + inodes:
+*  || check_mount_present --path /scratch --fstype nfs
+*  || check_disk_usage --path /scratch --max-percent 90 --max-inode-percent 85
+
+# A plain directory that shares the root filesystem -- check_disk_usage
+# works here too (it reports whatever filesystem the path lives on):
+*  || check_disk_usage --path /var/spool/slurmd --max-percent 90
+
+# One directory's OWN footprint, independent of the filesystem's overall
+# fullness -- e.g. a single job/user scratch subdirectory that shouldn't
+# be allowed to grow past a budget even if the shared filesystem it's on
+# still has plenty of room overall:
+*  || check_dir_size --path /scratch/jobtmp --max-gb 500
+*  || check_dir_size --path /var/log --max-percent 20
+```
+
+Use `check_disk_usage` (cheap, `statvfs`-based) whenever "how full is this
+filesystem" is the real question — that covers every dedicated mount case.
+Reach for `check_dir_size` (a real tree walk, more I/O) only when you
+specifically need "how big is *this one directory*," independent of
+its filesystem's overall usage.
 
 ---
 

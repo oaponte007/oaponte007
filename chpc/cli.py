@@ -31,7 +31,8 @@ DEFAULT_CHECKS_TEMPLATE = """\
 *  || check_real_memory --tolerance-percent 2
 *  || check_cpu_count --tolerance 0
 *  || check_load_average --max-per-core 1.5
-*  || check_disk_usage --path / --max-percent 90
+*  || check_disk_usage --path / --max-percent 90 --max-inode-percent 90
+*  || check_dir_size --path /tmp --max-gb 50
 *  || check_zombie_processes --max 5
 {extra}
 """
@@ -80,6 +81,7 @@ def cmd_install(args: argparse.Namespace) -> int:
             for m in data.get("mounts", []):
                 if m["fstype"] in ("nfs", "nfs4", "lustre", "gpfs", "cifs"):
                     extra_lines.append(f"*  || check_mount_present --path {m['path']} --fstype {m['fstype']}")
+                    extra_lines.append(f"*  || check_disk_usage --path {m['path']} --max-percent 90")
         config.checks_file.write_text(
             DEFAULT_CHECKS_TEMPLATE.format(extra="\n".join(extra_lines))
         )
