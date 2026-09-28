@@ -1,0 +1,47 @@
+name: Build Billing Statement Builder exe
+
+"on":
+  push:
+    paths:
+      - "billing-statement-builder/**"
+      - ".github/workflows/build-billing-exe.yml"
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: billing-statement-builder
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Decode bundled template (kept as base64 text in the repo so
+          Windows checkout line-ending conversion can never corrupt the
+          binary .docx)
+        shell: python
+        run: |
+          import base64, pathlib
+          b64 = pathlib.Path("Jo-Wayne_Billing_Statement_Template.docx.b64").read_text()
+          pathlib.Path("Jo-Wayne_Billing_Statement_Template.docx").write_bytes(base64.b64decode(b64))
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build exe
+        run: |
+          pyinstaller --onefile --noconsole --name "Coastal HPC Billing Statement Builder" `
+            --add-data "Jo-Wayne_Billing_Statement_Template.docx;." `
+            billing_app.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CoastalHPCBillingStatementBuilder-windows-exe
+          path: "billing-statement-builder/dist/Coastal HPC Billing Statement Builder.exe"
+          if-no-files-found: error
