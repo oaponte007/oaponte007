@@ -32,11 +32,14 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pyinstaller
+          # pywin32/pefile are only needed by pyinstaller's --version-file
+          # support below, not by the app itself.
+          pip install -r requirements.txt pyinstaller pywin32 pefile
 
       - name: Build exe
         run: |
           pyinstaller --onefile --noconsole --name "Coastal HPC Billing Statement Builder" `
+            --version-file version_info.txt `
             --add-data "Jo-Wayne_Billing_Statement_Template.docx;." `
             billing_app.py
 

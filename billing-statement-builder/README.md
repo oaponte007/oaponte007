@@ -39,6 +39,41 @@ Linux/Mac). It installs `pyinstaller` and produces
 `dist\Coastal HPC Billing Statement Builder.exe`, a single file you can
 copy anywhere and double-click; the template is bundled inside it.
 
+## "Windows protected your PC" / flagged as dangerous
+
+Expected, not a sign anything's wrong: this `.exe` is unsigned (no
+publisher certificate) and freshly built, so Windows SmartScreen and some
+antivirus engines default to a warning for it — the same as almost any
+small, unsigned tool built with PyInstaller. It has no reputation history
+yet purely because nobody's run *this exact build* before.
+
+**To run it anyway (do this once per download):**
+1. Right-click the downloaded `.zip` → **Properties** → check **Unblock**
+   at the bottom → **OK**. *Then* extract it — unblocking after
+   extraction means unblocking the `.exe` itself the same way instead.
+2. If you still get a blue "Windows protected your PC" screen when running
+   it: click **More info**, then **Run anyway**.
+3. If Microsoft Defender quarantines it instead: Windows Security → Virus
+   & threat protection → Protection history → find it → **Actions** →
+   **Restore** (only do this because you trust where it came from and can
+   read the source yourself — `statement_builder.py`/`billing_app.py` are
+   plain, readable Python, not obfuscated).
+
+**What actually removes the warning for everyone, permanently:** signing
+the exe with a purchased code-signing certificate (roughly $70–500/year
+from a CA like DigiCert/Sectigo/SSL.com, or Azure Trusted Signing as a
+cheaper subscription alternative) and running `signtool sign` on it as
+part of the build. That requires buying and holding a real certificate
+under Coastal HPC's identity, which isn't something that can be done from
+here — but the CI build is ready to wire up a signing step the moment
+there's a certificate to use it with.
+
+The `.exe` now also carries real version metadata (Company/Product/File
+description, visible under right-click → Properties → Details) instead of
+shipping blank — good practice regardless, though it does not by itself
+stop the SmartScreen warning, which is reputation-based, not
+metadata-based.
+
 ## Using it
 
 1. **Statement** — statement number and date.
@@ -112,6 +147,7 @@ next customer, but keeps your company info.
 | `Jo-Wayne_Billing_Statement_Template.docx` | The base template — logo, layout, and branding come from here unchanged. |
 | `requirements.txt` | Dependencies: `python-docx` and `Pillow` (Pillow composites a custom logo onto the template's fixed-size logo box). |
 | `build_windows_exe.bat` | Builds the standalone `.exe` (run on Windows). |
+| `version_info.txt` | PyInstaller version resource (Company/Product/File description) embedded in the `.exe`'s Properties. |
 | `test_gui_smoke.py` | A headless test that drives the actual GUI (fills fields, adds/removes activity lines, generates a document) and checks the result — run with `pip install python-docx` then `python test_gui_smoke.py` (needs a display, or `xvfb-run` on Linux) if you change the code and want to re-verify it. |
 
 ## Notes on the math
