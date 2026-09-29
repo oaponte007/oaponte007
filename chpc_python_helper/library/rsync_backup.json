@@ -1,0 +1,15 @@
+{
+  "id": "rsync_backup",
+  "title": "rsync Backup with Retention Pruning",
+  "description": "rsyncs one or more source paths into a dated directory under a local destination, then prunes dated backups beyond a retention count -- a straightforward alternative to a full backup product for cluster config/home directories.",
+  "tags": ["backup", "rsync", "retention", "prune", "sync", "archive"],
+  "variables": [
+    {"name": "SOURCE_PATHS", "prompt": "Source path(s) to back up, space-separated", "type": "string", "default": "/etc /home"},
+    {"name": "DEST_BASE", "prompt": "Local destination base directory", "type": "path", "default": "/backup/cluster"},
+    {"name": "EXCLUDE_PATTERNS", "prompt": "rsync --exclude patterns, space-separated (leave empty for none)", "type": "string", "default": "*.tmp", "allow_empty": true},
+    {"name": "RETENTION_COUNT", "prompt": "Number of dated backups to keep (0 = keep forever)", "type": "int", "default": 7, "min": 0, "max": 3650}
+  ],
+  "toggles": [
+    {"name": "COMPRESS", "prompt": "Compress data in transit (rsync -z)", "default": true}
+  ]
+}

@@ -1,0 +1,123 @@
+.TH CHPC-ANSIBLE-HELPER 1 "2026-09-29" "CHPC_ansible_helper 0.1.0" "Coastal HPC"
+.SH NAME
+chpc-ansible-helper \- build Ansible playbooks for airgapped RHEL/Rocky/Debian systems from a vetted template library
+.SH SYNOPSIS
+.B python3 -m chpc_ansible_helper
+.I command
+.RI [ arguments ... ]
+.br
+.B chpc-ansible-helper
+.I command
+.RI [ arguments ... ]
+.SH DESCRIPTION
+.B chpc-ansible-helper
+builds Ansible playbooks on a machine with no network access and no AI
+model involved at all -- the same tool as
+.BR chpc-bash-helper / chpc-python-helper ,
+generating a playbook (YAML) instead. You either pick a template from
+its library and answer a short series of questions, or describe what
+you want in plain English and let it match your description against
+the library by keyword overlap.
+.PP
+Every template uses only
+.B ansible.builtin
+(ansible-core) modules -- no extra collections needed. Every generated
+playbook is checked with
+.B ansible-playbook --syntax-check
+if available, or a plain YAML structural check otherwise; a value you
+type is safely embedded as a quoted YAML scalar (via Python's
+.BR json.dumps() ),
+so special characters in your input can't corrupt the playbook's
+structure.
+.SH COMMANDS
+.TP
+.B list
+List every template in the library.
+.TP
+.BI show " template-id " "[--raw]"
+Show what a template asks. With
+.BR --raw ,
+also print the template's raw, unrendered text.
+.TP
+.BI describe " \(dqdescription\(dq"
+Rank every template by plain keyword overlap against
+.IR description .
+.TP
+.BI build " template-id " "[options]"
+Build a playbook from
+.IR template-id .
+With no
+.BR --var / --toggle / --toggle-group / --yes
+flags, runs an interactive wizard; with any of those, runs
+non-interactively.
+.SH OPTIONS FOR "BUILD"
+.TP
+.BI --out " path"
+Where to write the generated playbook. Defaults to
+.IR template-id .yml
+in the current directory.
+.TP
+.BI --var " NAME=VALUE"
+Answer one variable non-interactively. Repeatable.
+.TP
+.BI --toggle " NAME=on|off"
+Answer one yes/no toggle non-interactively. Repeatable.
+.TP
+.BI --toggle-group " NAME=VALUE"
+Answer one multiple-choice group non-interactively. Repeatable.
+.TP
+.B --yes
+Accept every default and run non-interactively.
+.SH EXAMPLES
+.PP
+.RS
+.EX
+python3 -m chpc_ansible_helper list
+python3 -m chpc_ansible_helper describe "apply a firewall baseline"
+python3 -m chpc_ansible_helper build firewall_baseline
+python3 -m chpc_ansible_helper build node_drain_resume \e
+    --var "NODE_LIST=node042" \e
+    --toggle-group "SCHEDULER=slurm" \e
+    --toggle-group "ACTION=drain" \e
+    --out node042_drain.yml
+ansible-playbook node042_drain.yml
+.EE
+.RE
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+An unknown template id, a malformed
+.BR --var / --toggle / --toggle-group
+value, a template failed its syntax check, or the interactive wizard
+was cancelled.
+.SH FILES
+.TP
+.I chpc_ansible_helper/library/*.json
+Template metadata: title, description, tags, and declared
+variables/toggles/toggle_groups.
+.TP
+.I chpc_ansible_helper/library/*.yml.tmpl
+The matching raw playbook template text, with
+.B {{VARIABLE}}
+and
+.B {{#TOGGLE}}...{{/TOGGLE}}
+placeholders (no space inside the braces) alongside genuine Ansible
+Jinja2 expressions such as
+.B "{{ item }}"
+(always with a space) -- the two never collide.
+.TP
+.I chpc_helper_core/
+The shared engine this app is built on -- must be copied alongside
+.I chpc_ansible_helper/
+as a sibling directory.
+.SH SEE ALSO
+The full manual,
+.IR CHPC_HELPER_SUITE_MANUAL.md ,
+and this package's own
+.IR README.md ,
+both shipped alongside this tool.
+.SH AUTHOR
+Coastal HPC.

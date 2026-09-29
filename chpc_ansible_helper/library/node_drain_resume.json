@@ -1,0 +1,33 @@
+{
+  "id": "node_drain_resume",
+  "title": "Node Drain / Resume Playbook (Slurm or PBS/PBS Pro)",
+  "description": "Drains or resumes one or more compute nodes with a required reason, using scontrol (Slurm) or pbsnodes (PBS/PBS Pro), with a typed confirmation before anything destructive happens. Runs against localhost -- meant to run from a management/login node that has scontrol or pbsnodes available, the same way the bash/python versions do, not fanned out across inventory.",
+  "tags": ["node", "drain", "resume", "slurm", "pbs", "pbspro", "maintenance", "scontrol", "pbsnodes", "offline"],
+  "variables": [
+    {"name": "NODE_LIST", "prompt": "Node name(s), space-separated (e.g. node001 node002)", "type": "string", "default": "node001"},
+    {"name": "REASON", "prompt": "Reason to record (used for drain; ignored for resume)", "type": "string", "default": "Scheduled maintenance", "allow_empty": true}
+  ],
+  "toggles": [
+    {"name": "REQUIRE_CONFIRMATION", "prompt": "Require typed YES confirmation before acting", "default": true}
+  ],
+  "toggle_groups": [
+    {
+      "name": "SCHEDULER",
+      "prompt": "Scheduler in use on this cluster",
+      "default": "slurm",
+      "options": [
+        {"value": "slurm", "label": "Slurm", "toggle": "USE_SLURM"},
+        {"value": "pbs", "label": "PBS / PBS Pro", "toggle": "USE_PBS"}
+      ]
+    },
+    {
+      "name": "ACTION",
+      "prompt": "Action to perform",
+      "default": "drain",
+      "options": [
+        {"value": "drain", "label": "drain (take offline)", "toggle": "ACTION_DRAIN"},
+        {"value": "resume", "label": "resume (bring back online)", "toggle": "ACTION_RESUME"}
+      ]
+    }
+  ]
+}

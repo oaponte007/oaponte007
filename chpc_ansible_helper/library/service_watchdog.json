@@ -1,0 +1,15 @@
+{
+  "id": "service_watchdog",
+  "title": "systemd Service Watchdog (check, restart with backoff, log outcome)",
+  "description": "Checks that a systemd service is active; if not, tries restarting it up to N times with a delay between attempts (checking the real post-restart ActiveState each time, not just whether the restart command itself succeeded), and logs the final outcome via syslog if it never comes back.",
+  "tags": ["systemd", "service", "watchdog", "restart", "monitor", "health", "check", "cron", "timer"],
+  "variables": [
+    {"name": "SERVICE_NAME", "prompt": "systemd service name (without .service)", "type": "string", "default": "slurmd"},
+    {"name": "MAX_RESTART_ATTEMPTS", "prompt": "Max restart attempts before giving up", "type": "int", "default": 3, "min": 1, "max": 20},
+    {"name": "RETRY_DELAY_SECONDS", "prompt": "Seconds to wait after a restart before checking again", "type": "int", "default": 5, "min": 1, "max": 600},
+    {"name": "TARGET_HOSTS", "prompt": "Inventory host pattern/group to target", "type": "string", "default": "all"}
+  ],
+  "toggles": [
+    {"name": "ALERT_VIA_LOGGER", "prompt": "Also send a syslog alert (via logger) if it never comes back up", "default": true}
+  ]
+}

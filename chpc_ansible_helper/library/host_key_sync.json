@@ -1,0 +1,15 @@
+{
+  "id": "host_key_sync",
+  "title": "Distribute SSH Known Hosts / Authorized Keys Across Inventory",
+  "description": "Scans each target host's SSH key into the controller's known_hosts (via ssh-keyscan), and/or pushes a public key into each target's authorized_keys -- for getting passwordless SSH working across a fleet using Ansible's own inventory instead of a hand-maintained hosts file. TARGET_HOSTS should be a plain inventory group name here, since the known_hosts play resolves it via groups[].",
+  "tags": ["ssh", "known_hosts", "authorized_keys", "fleet", "nodes", "distribute", "passwordless"],
+  "variables": [
+    {"name": "TARGET_HOSTS", "prompt": "Inventory group name to target (a plain group name, not a complex pattern)", "type": "string", "default": "all"},
+    {"name": "KNOWN_HOSTS_FILE", "prompt": "known_hosts file to update on the controller", "type": "path", "default": "~/.ssh/known_hosts"},
+    {"name": "SSH_PUBLIC_KEY", "prompt": "SSH public key to install on each target host (leave empty to skip)", "type": "string", "default": "", "allow_empty": true},
+    {"name": "SSH_USER", "prompt": "Remote account to install the key for, on each target host", "type": "string", "default": "root"}
+  ],
+  "toggles": [
+    {"name": "UPDATE_KNOWN_HOSTS", "prompt": "Scan and add each host's key to the controller's known_hosts", "default": true}
+  ]
+}

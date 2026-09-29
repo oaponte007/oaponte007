@@ -1,0 +1,23 @@
+{
+  "id": "lockfile_singleton",
+  "title": "Single-Instance Lock (flock) Wrapper",
+  "description": "Runs a command under an flock-guarded shell task on each target host, so two overlapping playbook runs never execute the guarded command on the same machine at the same time.",
+  "tags": ["lock", "flock", "singleton", "concurrency", "cron", "overlap", "mutex", "pidfile"],
+  "variables": [
+    {"name": "LOCK_FILE_PATH", "prompt": "Path to the lock file", "type": "path", "default": "/var/lock/my-task.lock"},
+    {"name": "COMMAND_DESCRIPTION", "prompt": "One-line description of the work being guarded (used as the task name)", "type": "string", "default": "the guarded task"},
+    {"name": "COMMAND_TO_RUN", "prompt": "The exact command to run while holding the lock", "type": "string", "default": "echo \"replace me\""},
+    {"name": "TARGET_HOSTS", "prompt": "Inventory host pattern/group to target", "type": "string", "default": "all"}
+  ],
+  "toggle_groups": [
+    {
+      "name": "LOCK_MODE",
+      "prompt": "If another instance is already running on that host",
+      "default": "skip",
+      "options": [
+        {"value": "skip", "label": "skip immediately without waiting", "toggle": "LOCK_SKIP"},
+        {"value": "wait", "label": "wait for it to finish, then run anyway", "toggle": "LOCK_WAIT"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "package_baseline",
+  "title": "Install a Baseline Package Set (RHEL/Rocky or Debian, offline-repo aware)",
+  "description": "Installs a list of packages using dnf/yum on RHEL/Rocky or apt on Debian, assuming an airgapped box already has a local/offline repo mirror configured -- this script never reaches out to the internet itself.",
+  "tags": ["package", "install", "dnf", "yum", "apt", "debian", "rhel", "rocky", "baseline", "offline", "repo", "provisioning"],
+  "variables": [
+    {"name": "PACKAGE_LIST", "prompt": "Packages to install, space-separated", "type": "string", "default": "vim tmux htop"}
+  ],
+  "toggles": [
+    {"name": "REFRESH_CACHE", "prompt": "Refresh the local repo metadata cache first (needs your offline repo mirror reachable, not the internet)", "default": false}
+  ],
+  "toggle_groups": [
+    {
+      "name": "OS_FAMILY",
+      "prompt": "OS family",
+      "default": "rhel",
+      "options": [
+        {"value": "rhel", "label": "RHEL / Rocky (dnf or yum)", "toggle": "USE_DNF"},
+        {"value": "debian", "label": "Debian (apt)", "toggle": "USE_APT"}
+      ]
+    }
+  ]
+}

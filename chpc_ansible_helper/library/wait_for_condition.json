@@ -1,0 +1,30 @@
+{
+  "id": "wait_for_condition",
+  "title": "Wait Until Something Is Ready (poll with timeout)",
+  "description": "Waits until a TCP port is open, a file exists, a systemd service is active, or a process is running, then continues. Uses Ansible's native wait_for module for the port/file cases -- register+until+retries for service/process, since wait_for itself doesn't check those directly.",
+  "tags": ["wait", "poll", "ready", "timeout", "deploy", "dependency", "port", "service", "process", "file", "startup", "wait_for"],
+  "variables": [
+    {"name": "HOST", "prompt": "Host to check (only used for the port check)", "type": "string", "default": "localhost"},
+    {"name": "PORT", "prompt": "Port number (only used for the port check)", "type": "int", "default": 22, "min": 1, "max": 65535},
+    {"name": "FILE_PATH", "prompt": "File path (only used for the file check)", "type": "path", "default": "/tmp/ready.flag"},
+    {"name": "SERVICE_NAME", "prompt": "systemd service name (only used for the service check)", "type": "string", "default": "slurmd"},
+    {"name": "PROCESS_NAME", "prompt": "Process name to look for, as pgrep would match it (only used for the process check)", "type": "string", "default": "slurmd"},
+    {"name": "WAIT_TIMEOUT_SECONDS", "prompt": "Give up after this many seconds (only used for the port/file checks)", "type": "int", "default": 120, "min": 1, "max": 86400},
+    {"name": "RETRIES", "prompt": "Number of checks before giving up (only used for the service/process checks)", "type": "int", "default": 40, "min": 1, "max": 1000},
+    {"name": "POLL_INTERVAL_SECONDS", "prompt": "Seconds between checks (only used for the service/process checks)", "type": "int", "default": 3, "min": 1, "max": 3600},
+    {"name": "TARGET_HOSTS", "prompt": "Inventory host pattern/group to target", "type": "string", "default": "all"}
+  ],
+  "toggle_groups": [
+    {
+      "name": "WAIT_TARGET",
+      "prompt": "What are you waiting for",
+      "default": "service",
+      "options": [
+        {"value": "port", "label": "a TCP port is open", "toggle": "WAIT_PORT"},
+        {"value": "file", "label": "a file exists", "toggle": "WAIT_FILE"},
+        {"value": "service", "label": "a systemd service is active", "toggle": "WAIT_SERVICE"},
+        {"value": "process", "label": "a process (by name) is running", "toggle": "WAIT_PROCESS"}
+      ]
+    }
+  ]
+}

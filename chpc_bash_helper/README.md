@@ -9,22 +9,25 @@ below.
 
 This file covers getting it installed and running. For the full command
 reference, every template in the library, and how to add your own, see
-[`../CHPC_BASH_HELPER_MANUAL.md`](../CHPC_BASH_HELPER_MANUAL.md). A Unix
-man page also ships in [`man/chpc-bash-helper.1`](man/chpc-bash-helper.1)
+[`../CHPC_HELPER_SUITE_MANUAL.md`](../CHPC_HELPER_SUITE_MANUAL.md) (also
+covers the sibling `chpc_python_helper`/`chpc_ansible_helper` tools). A
+Unix man page also ships in [`man/chpc-bash-helper.1`](man/chpc-bash-helper.1)
 (see **Man page**, below).
 
 ## Requirements
 
-Just Python 3.9 or newer. Nothing else — no `pip install`, no
-dependencies, and (once the folder is on the machine) no network access
-needed to run it.
+Python 3.9 or newer, and this folder's sibling `chpc_helper_core/` (the
+shared engine this tool is built on) copied alongside it. Nothing else
+— no `pip install`, no other dependencies, and (once both folders are
+on the machine) no network access needed to run it.
 
 ## Install
 
-"Install" here just means: get the `chpc_bash_helper/` folder onto the
-machine, however you normally move files onto it (copy, `scp`, USB
-drive, internal file transfer for an airgapped box, etc.) — there's no
-package to build or register.
+"Install" here just means: get **both** the `chpc_bash_helper/` folder
+**and** the `chpc_helper_core/` folder onto the machine, as sibling
+directories (same parent folder), however you normally move files onto
+it (copy, `scp`, USB drive, internal file transfer for an airgapped
+box, etc.) — there's no package to build or register.
 
 ### RHEL / Rocky Linux 8, 9, and 10
 
@@ -42,7 +45,8 @@ sudo dnf install -y python3       # RHEL/Rocky 8 and 9
 sudo dnf install -y python3       # RHEL/Rocky 10 (dnf5, same command)
 ```
 
-Copy `chpc_bash_helper/` onto the machine, then either:
+Copy `chpc_bash_helper/` and `chpc_helper_core/` onto the machine as
+siblings, then either:
 
 ```bash
 cd /path/containing/chpc_bash_helper
@@ -90,8 +94,9 @@ Install Python 3 from [python.org](https://www.python.org/downloads/)
 (check **"Add python.exe to PATH"** during setup) if it isn't already
 installed. The Microsoft Store version of Python 3 also works.
 
-Copy the `chpc_bash_helper` folder anywhere, then from a Command Prompt
-or PowerShell in the folder that *contains* `chpc_bash_helper`:
+Copy `chpc_bash_helper` and `chpc_helper_core` into the same folder,
+then from a Command Prompt or PowerShell in the folder that *contains*
+both:
 
 ```bat
 python -m chpc_bash_helper list

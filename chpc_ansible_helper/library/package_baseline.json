@@ -1,0 +1,24 @@
+{
+  "id": "package_baseline",
+  "title": "Install a Baseline Package Set (RHEL/Rocky and Debian, offline-repo aware)",
+  "description": "Installs a list of packages, assuming your repos (local mirror, satellite, etc.) are already configured -- this never reaches the internet itself. The generic package module auto-detects dnf/yum vs apt per target host's facts (one playbook works across mixed-OS inventory); the os-specific option uses dnf/apt directly when you need finer control such as a cache refresh.",
+  "tags": ["package", "install", "dnf", "yum", "apt", "debian", "rhel", "rocky", "baseline", "offline", "repo", "provisioning"],
+  "variables": [
+    {"name": "PACKAGE_LIST", "prompt": "Packages to install, space-separated", "type": "string", "default": "vim tmux htop"},
+    {"name": "TARGET_HOSTS", "prompt": "Inventory host pattern/group to target", "type": "string", "default": "all"}
+  ],
+  "toggles": [
+    {"name": "REFRESH_CACHE", "prompt": "Refresh the local repo metadata cache first (only used with the os-specific option; needs your offline repo mirror reachable, not the internet)", "default": false}
+  ],
+  "toggle_groups": [
+    {
+      "name": "MODULE_STYLE",
+      "prompt": "Which install approach",
+      "default": "generic",
+      "options": [
+        {"value": "generic", "label": "generic package module (auto-detects per host, works across mixed RHEL/Debian inventory)", "toggle": "USE_GENERIC"},
+        {"value": "os_specific", "label": "explicit dnf/apt (needed for a cache refresh)", "toggle": "USE_OS_SPECIFIC"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+"""Convenience launcher: lets you run ./bin/chpc-ansible-helper directly
+instead of typing `python3 -m chpc_ansible_helper`. Copy the whole
+chpc_ansible_helper/ folder (and its sibling chpc_helper_core/) onto the
+target machine and either works -- nothing here needs installing.
+"""
+import os
+import sys
+
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))  # .../chpc_ansible_helper/bin
+_PACKAGE_DIR = os.path.dirname(_THIS_DIR)  # .../chpc_ansible_helper
+_PACKAGE_PARENT = os.path.dirname(_PACKAGE_DIR)  # the directory chpc_ansible_helper/ lives in
+sys.path.insert(0, _PACKAGE_PARENT)
+
+from chpc_ansible_helper.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    raise SystemExit(main())

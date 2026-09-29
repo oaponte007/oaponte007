@@ -1,0 +1,13 @@
+{
+  "id": "retry_wrapper",
+  "title": "Retry a Command with Backoff",
+  "description": "Retries a command via Ansible's native until/retries/delay -- the idiomatic replacement for a hand-written retry loop. Ansible's retry only supports a fixed delay between attempts (no native exponential backoff), unlike the bash/python versions of this template.",
+  "tags": ["retry", "backoff", "flaky", "transient", "resilience", "wrapper", "workaround", "until", "retries"],
+  "variables": [
+    {"name": "COMMAND_DESCRIPTION", "prompt": "One-line description of the command being retried (used as the task name)", "type": "string", "default": "the command"},
+    {"name": "COMMAND_TO_RUN", "prompt": "The exact command to run (quote it exactly as you would type it yourself)", "type": "string", "default": "echo \"replace me\""},
+    {"name": "MAX_ATTEMPTS", "prompt": "Maximum number of attempts", "type": "int", "default": 5, "min": 1, "max": 100},
+    {"name": "DELAY_SECONDS", "prompt": "Fixed delay between attempts, in seconds", "type": "int", "default": 5, "min": 1, "max": 3600},
+    {"name": "TARGET_HOSTS", "prompt": "Inventory host pattern/group to target", "type": "string", "default": "all"}
+  ]
+}

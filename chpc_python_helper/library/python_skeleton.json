@@ -1,0 +1,31 @@
+{
+  "id": "python_skeleton",
+  "title": "Robust Python Script Skeleton (argparse, logging, dry-run)",
+  "description": "A clean starting point for any new script: argparse option parsing, timestamped logging (to stdout, or stdout plus a file), and an optional --dry-run flag. Start every new script from this instead of a blank file.",
+  "tags": ["skeleton", "boilerplate", "template", "argparse", "argument", "parsing", "logging", "error", "handling", "dry-run", "starter", "new script"],
+  "variables": [
+    {"name": "SCRIPT_PURPOSE", "prompt": "One-line description of what this script does (shown in --help)", "type": "string", "default": "Describe what this script does here."},
+    {"name": "AUTHOR_NAME", "prompt": "Author / team name to note in a startup log line", "type": "string", "default": "Coastal HPC", "allow_empty": true},
+    {"name": "LOG_FILE_PATH", "prompt": "Log file path (only used if you choose stdout + file logging below)", "type": "path", "default": "/var/log/my-script.log"}
+  ],
+  "toggle_groups": [
+    {
+      "name": "LOGGING_MODE",
+      "prompt": "Where should log messages go",
+      "default": "stdout",
+      "options": [
+        {"value": "stdout", "label": "stdout only", "toggle": "LOG_STDOUT_ONLY"},
+        {"value": "file", "label": "stdout and a log file", "toggle": "LOG_TO_FILE"}
+      ]
+    },
+    {
+      "name": "DRY_RUN_SUPPORT",
+      "prompt": "Include a --dry-run flag",
+      "default": "yes",
+      "options": [
+        {"value": "yes", "label": "yes -- add -n/--dry-run support", "toggle": "HAS_DRY_RUN"},
+        {"value": "no", "label": "no", "toggle": "NO_DRY_RUN"}
+      ]
+    }
+  ]
+}

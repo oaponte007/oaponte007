@@ -1,8 +1,9 @@
 @echo off
 REM Convenience launcher for Windows: run bin\chpc-bash-helper.bat directly
-REM instead of typing `python -m chpc_bash_helper`. Copy the whole
-REM chpc_bash_helper\ folder anywhere and this works -- nothing to install
-REM (no pip, no network); requires Python 3 from python.org.
+REM instead of typing `python -m chpc_bash_helper`. Copy chpc_bash_helper\
+REM and its sibling chpc_helper_core\ folder into the same parent folder
+REM and this works -- nothing to install (no pip, no network); requires
+REM Python 3 from python.org.
 REM
 REM This still generates plain .sh (bash) files -- Windows can build them,
 REM but you copy the resulting script to the actual Linux/airgapped box to

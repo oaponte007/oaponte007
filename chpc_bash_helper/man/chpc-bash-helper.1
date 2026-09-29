@@ -144,9 +144,15 @@ file, with
 and
 .B {{#TOGGLE}}...{{/TOGGLE}}
 placeholders.
+.TP
+.I chpc_helper_core/
+The shared engine (templating, wizard, matcher, CLI) this app is built
+on -- must be copied alongside
+.I chpc_bash_helper/
+as a sibling directory.
 .SH SEE ALSO
 The full manual,
-.IR CHPC_BASH_HELPER_MANUAL.md ,
+.IR CHPC_HELPER_SUITE_MANUAL.md ,
 and this package's own
 .IR README.md ,
 both shipped alongside this tool, cover adding new templates to the

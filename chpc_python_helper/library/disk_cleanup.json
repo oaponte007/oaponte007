@@ -1,0 +1,22 @@
+{
+  "id": "disk_cleanup",
+  "title": "Age/Size-Based Directory Cleanup",
+  "description": "Finds files under given directories older than N days matching a name pattern, and either reports them or deletes them -- the standard workaround for a scratch/tmp directory filling a node's disk and blocking jobs.",
+  "tags": ["cleanup", "disk", "space", "scratch", "tmp", "old", "files", "retention", "find", "delete", "purge"],
+  "variables": [
+    {"name": "TARGET_DIRS", "prompt": "Directories to clean, space-separated", "type": "string", "default": "/scratch/tmp"},
+    {"name": "MAX_AGE_DAYS", "prompt": "Delete/report files older than this many days", "type": "int", "default": 14, "min": 0, "max": 3650},
+    {"name": "NAME_PATTERN", "prompt": "Only match files against this glob pattern (e.g. '*.tmp'), or * for everything", "type": "string", "default": "*"}
+  ],
+  "toggle_groups": [
+    {
+      "name": "MODE",
+      "prompt": "What should it do with matching files",
+      "default": "report",
+      "options": [
+        {"value": "report", "label": "just report them (safe, no changes)", "toggle": "MODE_REPORT"},
+        {"value": "delete", "label": "delete them", "toggle": "MODE_DELETE"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "cron_installer",
+  "title": "Install a Scheduled Job (cron or systemd timer)",
+  "description": "Installs a recurring schedule for an existing command -- either a cron entry (via the native cron module) or a systemd timer+service pair -- across your inventory.",
+  "tags": ["cron", "crontab", "systemd", "timer", "schedule", "recurring", "job"],
+  "variables": [
+    {"name": "COMMAND_PATH", "prompt": "Full path to the script/command to run", "type": "path", "default": "/usr/local/bin/my-script.sh"},
+    {"name": "CRON_SCHEDULE", "prompt": "Cron schedule, 5 space-separated fields (only used for the cron method)", "type": "string", "default": "*/15 * * * *"},
+    {"name": "TIMER_ON_CALENDAR", "prompt": "systemd OnCalendar value, e.g. 'hourly' or '*-*-* 02:00:00' (only used for the systemd timer method)", "type": "string", "default": "hourly"},
+    {"name": "UNIT_NAME", "prompt": "Name for the systemd service/timer unit (only used for the systemd timer method)", "type": "string", "default": "my-script"},
+    {"name": "TARGET_HOSTS", "prompt": "Inventory host pattern/group to target", "type": "string", "default": "all"}
+  ],
+  "toggle_groups": [
+    {
+      "name": "SCHEDULE_METHOD",
+      "prompt": "Scheduling method",
+      "default": "cron",
+      "options": [
+        {"value": "cron", "label": "cron entry", "toggle": "USE_CRON"},
+        {"value": "systemd_timer", "label": "systemd timer + service unit", "toggle": "USE_TIMER"}
+      ]
+    },
+    {
+      "name": "CRON_USER_SCOPE",
+      "prompt": "Install into which crontab (only used for the cron method)",
+      "default": "root",
+      "options": [
+        {"value": "root", "label": "root's crontab", "toggle": "CRON_ROOT"},
+        {"value": "current_user", "label": "the connecting user's crontab", "toggle": "CRON_CURRENT_USER"}
+      ]
+    }
+  ]
+}

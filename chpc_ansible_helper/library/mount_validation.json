@@ -1,0 +1,14 @@
+{
+  "id": "mount_validation",
+  "title": "Mount Point / Free-Space Validation",
+  "description": "Verifies expected mount points are present, writable, and have at least a minimum amount of free space, using gathered facts (ansible_facts.mounts) rather than shelling out to df -- fails the play on any target host with a problem.",
+  "tags": ["mount", "filesystem", "disk", "space", "free", "health", "check", "validation", "nfs", "scratch", "home"],
+  "variables": [
+    {"name": "MOUNT_LIST", "prompt": "Mount points to check, space-separated (e.g. /home /scratch)", "type": "string", "default": "/home /scratch"},
+    {"name": "MIN_FREE_PERCENT", "prompt": "Minimum free space required, as a percent (0 to skip the free-space check)", "type": "int", "default": 10, "min": 0, "max": 100},
+    {"name": "TARGET_HOSTS", "prompt": "Inventory host pattern/group to target", "type": "string", "default": "all"}
+  ],
+  "toggles": [
+    {"name": "CHECK_WRITABLE", "prompt": "Also verify each mount is writable", "default": true}
+  ]
+}

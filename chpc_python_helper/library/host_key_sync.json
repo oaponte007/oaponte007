@@ -1,0 +1,15 @@
+{
+  "id": "host_key_sync",
+  "title": "Distribute SSH Known Hosts / Authorized Keys Across a Node List",
+  "description": "Reads a list of hostnames from a file and, for each one, adds it to a known_hosts file and/or pushes a public key into its authorized_keys over SSH -- for getting passwordless SSH working across a fleet without pdsh/Ansible.",
+  "tags": ["ssh", "known_hosts", "authorized_keys", "fleet", "nodes", "distribute", "passwordless"],
+  "variables": [
+    {"name": "HOSTS_FILE", "prompt": "Path to a file with one hostname per line", "type": "path", "default": "/etc/chpc/nodelist.txt"},
+    {"name": "KNOWN_HOSTS_FILE", "prompt": "known_hosts file to update", "type": "path", "default": "~/.ssh/known_hosts"},
+    {"name": "SSH_PUBLIC_KEY", "prompt": "SSH public key to install on each host (leave empty to skip)", "type": "string", "default": "", "allow_empty": true},
+    {"name": "SSH_USER", "prompt": "Remote SSH user to connect as", "type": "string", "default": "root"}
+  ],
+  "toggles": [
+    {"name": "UPDATE_KNOWN_HOSTS", "prompt": "Scan and add each host's key to known_hosts (ssh-keyscan)", "default": true}
+  ]
+}

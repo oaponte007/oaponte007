@@ -1,0 +1,13 @@
+{
+  "id": "ansible_skeleton",
+  "title": "Playbook Skeleton (hosts, become, tasks, optional handler)",
+  "description": "A clean starting point for any new playbook: a play against a chosen host pattern, privilege escalation, and one example task -- plus, optionally, an example notify/handler pair. Start every new playbook from this instead of a blank file. Ansible's own --check flag is the built-in dry-run, so nothing extra is needed here for that.",
+  "tags": ["skeleton", "boilerplate", "template", "playbook", "starter", "new playbook", "handler", "notify"],
+  "variables": [
+    {"name": "PLAYBOOK_PURPOSE", "prompt": "One-line description of what this playbook does (used as the play name)", "type": "string", "default": "Describe what this playbook does here."},
+    {"name": "TARGET_HOSTS", "prompt": "Inventory host pattern/group to target", "type": "string", "default": "all"}
+  ],
+  "toggles": [
+    {"name": "INCLUDE_HANDLER_EXAMPLE", "prompt": "Include an example task that notifies a handler", "default": false}
+  ]
+}

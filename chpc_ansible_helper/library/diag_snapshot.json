@@ -1,0 +1,15 @@
+{
+  "id": "diag_snapshot",
+  "title": "Support/Diagnostics Snapshot Bundle",
+  "description": "Collects environment info, dmesg, journalctl, disk, network, process list, and (if present) Slurm/PBS status into one timestamped tarball on each target host, then fetches it back to the controller -- for attaching to a support ticket or archiving before/after a change.",
+  "tags": ["diagnostics", "support", "bundle", "snapshot", "dmesg", "journalctl", "sysinfo", "troubleshooting", "environment", "fetch"],
+  "variables": [
+    {"name": "OUTPUT_DIR", "prompt": "Directory on each target host to build the snapshot tarball in", "type": "path", "default": "/tmp"},
+    {"name": "FETCH_DEST_DIR", "prompt": "Local directory on the controller to fetch the tarballs into", "type": "path", "default": "./diag_snapshots"},
+    {"name": "TARGET_HOSTS", "prompt": "Inventory host pattern/group to target", "type": "string", "default": "all"}
+  ],
+  "toggles": [
+    {"name": "INCLUDE_JOURNAL", "prompt": "Include the last 500 lines of the systemd journal", "default": true},
+    {"name": "INCLUDE_SCHEDULER_STATUS", "prompt": "Include Slurm/PBS status output, if either is installed", "default": true}
+  ]
+}
