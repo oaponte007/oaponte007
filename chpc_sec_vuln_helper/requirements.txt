@@ -1,0 +1,4 @@
+# Only needed for `scan --format docx` (or "both"). collect, update-feed,
+# list-feeds, and `scan --format html` need nothing beyond the Python 3
+# standard library. See README.md's "Requirements" section.
+python-docx>=1.1.0

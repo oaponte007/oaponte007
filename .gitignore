@@ -13,3 +13,9 @@ dist/
 billing-statement-builder/Jo-Wayne_Billing_Statement_Template.docx
 billing-statement-builder/coastal_hpc_logo.png
 billing-statement-builder/app_icon.ico
+
+# chpc_sec_vuln_helper: same pattern (logo decoded from committed base64),
+# plus locally fetched/imported vulnerability feed data -- never committed,
+# since it's either regenerated from *.b64 or pulled/imported by the user.
+chpc_sec_vuln_helper/assets/coastal_hpc_logo.png
+chpc_sec_vuln_helper/feed_data/

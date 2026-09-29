@@ -1,0 +1,122 @@
+.TH CHPC-SEC-VULN-HELPER 1 "2026-09-29" "CHPC_sec_vuln_helper 0.1.0" "Coastal HPC"
+.SH NAME
+chpc-sec-vuln-helper \- audit RHEL/Rocky/Windows hosts for security weaknesses on an airgapped machine and produce a branded report
+.SH SYNOPSIS
+.B python3 -m chpc_sec_vuln_helper
+.I command
+.RI [ arguments ... ]
+.SH DESCRIPTION
+.B chpc-sec-vuln-helper
+audits RHEL/Rocky 8, 9, 10 and Windows 10, 11 hosts for security
+weaknesses, and writes a branded, plain-English report anyone can act
+on. Two independent kinds of findings: baseline/hardening checks of
+real settings (self-contained, never goes stale), and CVE matches
+against an official offline vulnerability feed you import
+periodically (Red Hat OVAL for RHEL/Rocky, an MSRC CSV export for
+Windows). Fixing what it finds is left entirely to you; nothing this
+tool does changes anything on the scanned machine.
+.SH COMMANDS
+.TP
+.BI collect " [-o FILE]"
+Collect this Linux host's security-relevant state into JSON (default:
+stdout).
+.I collect
+only works on Linux; on Windows, run
+.I collectors/windows_collector.ps1
+directly instead, with the same JSON output shape.
+.TP
+.BI update-feed " [options]"
+Fetch or import a vulnerability feed.
+.RS
+.TP
+.BI --os-family " rhel|rocky"
+With
+.BR --os-version ,
+check for and offer to fetch/import an update for this OS family
+(the "roster update" prompt).
+.TP
+.BI --os-version " N"
+Major version number, e.g. 9.
+.TP
+.BI --import-rhel-oval " FILE"
+Normalize and import an already-downloaded RHEL OVAL
+.I .xml
+or
+.I .xml.bz2
+file. Requires
+.BR --os-version .
+Also populates the matching Rocky Linux feed (see README for why).
+.TP
+.BI --import-msrc-csv " FILE"
+Normalize and import a manually-exported MSRC Security Update Guide
+CSV file.
+.TP
+.BI --feed-dir " DIR"
+Where feeds are stored (default:
+.IR chpc_sec_vuln_helper/feed_data/ ).
+.RE
+.TP
+.BI list-feeds " [--feed-dir DIR]"
+Show every locally stored feed, its advisory count, and its age.
+.TP
+.BI scan " COLLECTED_JSON [options]"
+Evaluate a collected JSON file against the baseline rules and any
+loaded CVE feed, and write the report.
+.RS
+.TP
+.BI --out " PATH"
+Output path without extension (default:
+.IR security_report ).
+.TP
+.BI --format " docx|html|both"
+Which report format(s) to write (default: both). Falls back to
+.I html
+only if
+.B python-docx
+isn't installed.
+.TP
+.B --no-feed-prompt
+Never show the "is your feed current?" prompt.
+.TP
+.B --yes
+Answer "no" to the feed-update prompt automatically (non-interactive;
+uses whatever feed is already loaded).
+.RE
+.SH EXAMPLES
+.PP
+.RS
+.EX
+sudo python3 -m chpc_sec_vuln_helper collect -o collected.json
+python3 -m chpc_sec_vuln_helper update-feed --os-family rhel --os-version 9
+python3 -m chpc_sec_vuln_helper scan collected.json --out report --format both
+.EE
+.RE
+.SH FILES
+.TP
+.I chpc_sec_vuln_helper/feed_data/
+Default location of locally stored, normalized vulnerability feeds
+(one file per OS family/major version) and the
+.I incoming/
+drop folder for manually-exported MSRC CSVs awaiting import.
+.TP
+.I chpc_sec_vuln_helper/rules/linux_rules.py
+.TQ
+.I chpc_sec_vuln_helper/rules/windows_rules.py
+The baseline/hardening rule definitions.
+.TP
+.I chpc_sec_vuln_helper/collectors/
+The Linux (Python) and Windows (PowerShell) collectors.
+.SH A NOTE ON HONESTY
+This tool cannot promise to find "all" vulnerabilities \-\- no offline
+tool can, without a live, constantly-updated CVE database, which is
+exactly what an airgapped machine doesn't have. Baseline checks are
+always accurate (they check real settings, not a database); CVE
+matching is exactly as current as the feed last imported, and the
+report always states that date plainly.
+.SH SEE ALSO
+This package's own
+.IR README.md ,
+shipped alongside this tool, covers the full workflow, requirements,
+and why Rocky Linux reuses the RHEL feed.
+.SH AUTHOR
+Coastal HPC.

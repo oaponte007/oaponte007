@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<oval_definitions xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5"
+                   xmlns:unix="http://oval.mitre.org/XMLSchema/oval-definitions-5#unix"
+                   xmlns:linux="http://oval.mitre.org/XMLSchema/oval-definitions-5#linux">
+  <definitions>
+    <definition class="patch" id="oval:com.redhat.rhsa:def:20242000" version="632">
+      <metadata>
+        <title>RHSA-2024:2000: openssl security update (Important)</title>
+        <affected family="unix">
+          <platform>Red Hat Enterprise Linux 9</platform>
+        </affected>
+        <reference source="RHSA" ref_id="RHSA-2024:2000" ref_url="https://access.redhat.com/errata/RHSA-2024:2000"/>
+        <reference source="CVE" ref_id="CVE-2024-1111" ref_url="https://access.redhat.com/security/cve/CVE-2024-1111"/>
+        <description>A flaw was found in openssl that could allow a remote attacker to cause a denial of service.</description>
+        <advisory from="secalert@redhat.com">
+          <severity>Important</severity>
+          <cve href="https://access.redhat.com/security/cve/CVE-2024-1111" cvss3="7.5/CVSS:3.1" impact="important" public="20240115">CVE-2024-1111</cve>
+        </advisory>
+      </metadata>
+      <criteria operator="AND">
+        <criterion test_ref="oval:com.redhat.rhsa:tst:9000001" comment="Red Hat Enterprise Linux 9 is installed"/>
+        <criteria operator="OR">
+          <criterion test_ref="oval:com.redhat.rhsa:tst:20242000001" comment="openssl is earlier than 1:3.0.7-27.el9_5"/>
+          <criterion test_ref="oval:com.redhat.rhsa:tst:20242000002" comment="openssl-libs is earlier than 1:3.0.7-27.el9_5"/>
+        </criteria>
+      </criteria>
+    </definition>
+
+    <definition class="patch" id="oval:com.redhat.rhsa:def:20243000" version="415">
+      <metadata>
+        <title>RHSA-2024:3000: httpd security update (Moderate)</title>
+        <affected family="unix">
+          <platform>Red Hat Enterprise Linux 8</platform>
+          <platform>Red Hat Enterprise Linux 9</platform>
+        </affected>
+        <reference source="RHSA" ref_id="RHSA-2024:3000" ref_url="https://access.redhat.com/errata/RHSA-2024:3000"/>
+        <reference source="CVE" ref_id="CVE-2024-2222" ref_url="https://access.redhat.com/security/cve/CVE-2024-2222"/>
+        <description>A vulnerability was found in httpd that could allow information disclosure.</description>
+        <advisory from="secalert@redhat.com">
+          <severity>Moderate</severity>
+          <cve href="https://access.redhat.com/security/cve/CVE-2024-2222" cvss3="5.3/CVSS:3.1" impact="moderate" public="20240210">CVE-2024-2222</cve>
+        </advisory>
+      </metadata>
+      <criteria operator="AND">
+        <criterion test_ref="oval:com.redhat.rhsa:tst:9000001" comment="Red Hat Enterprise Linux 9 is installed"/>
+        <criterion test_ref="oval:com.redhat.rhsa:tst:20243000001" comment="httpd is earlier than 0:2.4.57-5.el9_4"/>
+      </criteria>
+    </definition>
+  </definitions>
+
+  <tests>
+    <rpminfo_test check="at least one" id="oval:com.redhat.rhsa:tst:20242000001" version="1">
+      <object object_ref="oval:com.redhat.rhsa:obj:20242000001"/>
+      <state state_ref="oval:com.redhat.rhsa:ste:20242000001"/>
+    </rpminfo_test>
+    <rpminfo_test check="at least one" id="oval:com.redhat.rhsa:tst:20242000002" version="1">
+      <object object_ref="oval:com.redhat.rhsa:obj:20242000002"/>
+      <state state_ref="oval:com.redhat.rhsa:ste:20242000002"/>
+    </rpminfo_test>
+    <rpminfo_test check="at least one" id="oval:com.redhat.rhsa:tst:20243000001" version="1">
+      <object object_ref="oval:com.redhat.rhsa:obj:20243000001"/>
+      <state state_ref="oval:com.redhat.rhsa:ste:20243000001"/>
+    </rpminfo_test>
+  </tests>
+
+  <objects>
+    <rpminfo_object id="oval:com.redhat.rhsa:obj:20242000001" version="1">
+      <name>openssl</name>
+    </rpminfo_object>
+    <rpminfo_object id="oval:com.redhat.rhsa:obj:20242000002" version="1">
+      <name>openssl-libs</name>
+    </rpminfo_object>
+    <rpminfo_object id="oval:com.redhat.rhsa:obj:20243000001" version="1">
+      <name>httpd</name>
+    </rpminfo_object>
+  </objects>
+
+  <states>
+    <rpminfo_state id="oval:com.redhat.rhsa:ste:20242000001" version="1">
+      <evr datatype="evr_string" operation="less than">1:3.0.7-27.el9_5</evr>
+    </rpminfo_state>
+    <rpminfo_state id="oval:com.redhat.rhsa:ste:20242000002" version="1">
+      <evr datatype="evr_string" operation="less than">1:3.0.7-27.el9_5</evr>
+    </rpminfo_state>
+    <rpminfo_state id="oval:com.redhat.rhsa:ste:20243000001" version="1">
+      <evr datatype="evr_string" operation="less than">0:2.4.57-5.el9_4</evr>
+    </rpminfo_state>
+  </states>
+</oval_definitions>

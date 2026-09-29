@@ -37,6 +37,19 @@ so an admin doesn't get stuck babysitting an endless
 > adapted to your situation by answering a short series of choices, or
 > by describing what you want in plain English to find the right
 > template to start from. See `CHPC_HELPER_SUITE_MANUAL.md`.
+>
+> **And [`chpc_sec_vuln_helper`](chpc_sec_vuln_helper/README.md)** —
+> audits RHEL/Rocky (8, 9, 10) and Windows (10, 11) hosts on a fully
+> airgapped machine for security weaknesses, and produces a branded
+> `.docx`/`.html` report anyone can act on: self-contained baseline
+> hardening checks (SELinux, firewall, SSH config, BitLocker, ...)
+> that never go stale, plus CVE matching against an official offline
+> feed (Red Hat OVAL / an MSRC export) you import periodically, with
+> a "roster update" style prompt that fetches automatically when
+> online or gives exact manual steps when it can't. Every finding
+> explains what it is, why it matters, and exactly how to fix it in
+> plain English — fixing is left entirely up to you. See
+> `chpc_sec_vuln_helper/README.md`.
 
 ## How it decides what to do
 
