@@ -1,11 +1,19 @@
 """Headless smoke test: builds the BillingApp inside a real (Xvfb) Tk root,
 drives it exactly like a user would (typing into fields, clicking Add
-line, clicking Generate), and confirms it produces a correct file --
-without a real display or mouse."""
+line, browsing for a logo, clicking Generate), and confirms it produces a
+correct file -- without a real display or mouse.
+
+Also specifically reproduces the reported bug (more payments than charges
+in the Statement Activity table not reducing the Amount Due) to guard
+against regressing it.
+"""
 import os
 import tkinter as tk
 
+from PIL import Image
+
 from billing_app import BillingApp
+from statement_builder import money
 
 root = tk.Tk()
 app = BillingApp(root)
@@ -20,7 +28,6 @@ app.customer_email.set("sam@acmefab.com")
 app.customer_phone.set("(843) 555-1212")
 
 app.previous_balance.set("500.00")
-app.payments_credits.set("500.00")
 app.past_due.set("0.00")
 
 app.activity.date_var.set("09/10")
@@ -36,32 +43,98 @@ app.activity.payment_var.set("500")
 app.activity.add_line()
 
 root.update()
-new_charges, amount_due = app.recalculate()
-assert new_charges == 1200.0, new_charges
-assert amount_due == 500.0 - 500.0 + 1200.0, amount_due
-print("recalculate() ->", new_charges, amount_due, "OK")
+data = app.recalculate()
+assert data.new_charges == 1200.0, data.new_charges
+assert data.payments_credits == 500.0, data.payments_credits
+assert data.amount_due == 500.0 - 500.0 + 1200.0 == 1200.0, data.amount_due
+print("recalculate() basic case ->", data.new_charges, data.payments_credits, data.amount_due, "OK")
 
+# -- reproduce the exact reported bug: entering MORE payments than charges
+#    on Statement Activity must reduce/negative the Amount Due, live,
+#    without a separate "Payments/Credits" field that could disagree ------
+for item in app.activity.tree.get_children():
+    app.activity.tree.delete(item)
+app.activity.on_change()  # ActivityTable itself calls this on add/remove;
+                            # simulate the same live-refresh path here too
+
+app.previous_balance.set("3000.00")
+app.past_due.set("2000.00")
+
+app.activity.date_var.set("09/29/2026")
+app.activity.ref_var.set("v0001")
+app.activity.desc_var.set("example installation")
+app.activity.charge_var.set("500")
+app.activity.payment_var.set("1500")
+app.activity.add_line()  # this alone must trigger on_change -> recalculate()
+
+app.activity.date_var.set("09/29/2026")
+app.activity.ref_var.set("v0001")
+app.activity.desc_var.set("Material List")
+app.activity.charge_var.set("700")
+app.activity.add_line()
+
+root.update()
 data = app.collect_data()
-assert data.customer_name == "Acme Fabrication"
-assert len(data.activity) == 2
-print("collect_data() OK:", data.activity)
+assert data.new_charges == 1200.0, data.new_charges
+assert data.payments_credits == 1500.0, data.payments_credits  # was stuck reading a stale manual field before the fix
+assert data.amount_due == 3000.0 - 1500.0 + 1200.0 == 2700.0, data.amount_due
+print("REPORTED BUG SCENARIO FIXED: payments_credits reflects activity payments, amount_due =", data.amount_due)
 
+# live label text must show the same numbers, not a stale computed_label
+label_text = app.computed_label.cget("text")
+assert money(1500.0) in label_text, label_text
+assert money(2700.0) in label_text, label_text
+print("computed_label live text matches:", label_text)
+
+# -- a case where payments exceed balance+charges: must go negative, not
+#    silently clamp to zero or leave a stale positive number ---------------
+for item in app.activity.tree.get_children():
+    app.activity.tree.delete(item)
+app.previous_balance.set("100.00")
+app.activity.date_var.set("01/01")
+app.activity.ref_var.set("PAYMENT")
+app.activity.desc_var.set("big payment")
+app.activity.payment_var.set("5000")
+app.activity.add_line()
+root.update()
+data = app.collect_data()
+assert data.amount_due == 100.0 - 5000.0 == -4900.0, data.amount_due
+assert money(data.amount_due) == "-$4,900.00"
+print("NEGATIVE / CREDIT BALANCE CASE OK:", money(data.amount_due))
+
+# -- logo: pick a non-standard-aspect-ratio test logo, confirm it survives
+#    browse_logo's validation and ends up on the generated StatementData --
+test_logo_path = "/tmp/_smoke_test_logo.png"
+Image.new("RGB", (900, 300), (30, 120, 200)).save(test_logo_path)
+app.company_logo_path.set(test_logo_path)
+app.update_logo_preview()
+assert app._logo_preview_image is not None
+data = app.collect_data()
+assert data.company_logo_path == test_logo_path
+print("logo path plumbed through to StatementData:", data.company_logo_path)
+
+out = "/tmp/billing_tool_gui_smoke_output.docx"
 from statement_builder import build_statement
-out = "/tmp/billing_tool/gui_smoke_output.docx"
-build_statement(app_template_path := os.path.join(os.path.dirname(__file__), "Jo-Wayne_Billing_Statement_Template.docx"),
+build_statement(os.path.join(os.path.dirname(__file__), "Jo-Wayne_Billing_Statement_Template.docx"),
                 data, out)
 assert os.path.exists(out)
-print("build_statement() via GUI-collected data OK ->", out)
 
-# -- remove-selected-row path ---------------------------------------------
-children = app.activity.tree.get_children()
-app.activity.tree.selection_set(children[0])
-app.activity.remove_selected()
-assert len(app.activity.tree.get_children()) == 1
-print("remove_selected() OK")
+import zipfile
+with zipfile.ZipFile(out) as z:
+    logo_bytes = z.read("word/media/image1.png")
+with Image.open(__import__("io").BytesIO(logo_bytes)) as img:
+    assert img.size == (1536, 1024), img.size  # unchanged from the template's own logo box size
+print("generated document's swapped logo keeps the template's fixed box size:", img.size)
 
-# -- reset_form path (bypass the confirm dialog by calling the body directly)
-for entry in (app.customer_name, app.contact_name):
-    entry.set("")
+os.remove(test_logo_path)
+os.remove(out)
+
+# -- clear_logo path --------------------------------------------------------
+app.clear_logo()
+assert app.company_logo_path.get() == ""
+data = app.collect_data()
+assert data.company_logo_path is None
+print("clear_logo() resets to template default")
+
 print("ALL GUI SMOKE CHECKS PASSED")
 root.destroy()

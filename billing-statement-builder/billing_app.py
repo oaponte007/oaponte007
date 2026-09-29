@@ -18,7 +18,9 @@ import tkinter as tk
 from datetime import date, datetime, timedelta
 from tkinter import filedialog, messagebox, ttk
 
-from statement_builder import ActivityLine, StatementData, build_statement
+from PIL import Image, ImageTk
+
+from statement_builder import ActivityLine, StatementData, build_statement, compute_totals, money
 
 APP_NAME = "Coastal HPC Billing Statement Builder"
 TEMPLATE_FILENAME = "Jo-Wayne_Billing_Statement_Template.docx"
@@ -127,8 +129,9 @@ class ActivityTable(ttk.Frame):
     COLUMNS = ("date", "reference", "description", "charge", "payment")
     HEADINGS = ("Date", "Invoice #", "Description", "Charges", "Payments")
 
-    def __init__(self, parent):
+    def __init__(self, parent, on_change=None):
         super().__init__(parent)
+        self.on_change = on_change or (lambda: None)
 
         self.tree = ttk.Treeview(self, columns=self.COLUMNS, show="headings", height=6)
         for col, heading, width in zip(self.COLUMNS, self.HEADINGS, (70, 80, 260, 80, 80)):
@@ -176,10 +179,12 @@ class ActivityTable(ttk.Frame):
         ))
         for v in (self.date_var, self.ref_var, self.desc_var, self.charge_var, self.payment_var):
             v.set("")
+        self.on_change()
 
     def remove_selected(self):
         for item in self.tree.selection():
             self.tree.delete(item)
+        self.on_change()
 
     def get_lines(self) -> list[ActivityLine]:
         lines = []
@@ -232,8 +237,25 @@ class BillingApp(ttk.Frame):
         self.company_email.pack(fill="x", pady=2)
         self.company_website = LabeledEntry(form, "Website", settings.get("company_website", ""))
         self.company_website.pack(fill="x", pady=2)
+
+        logo_row = ttk.Frame(form)
+        logo_row.pack(fill="x", pady=2)
+        ttk.Label(logo_row, text="Company Logo", width=22, anchor="w").pack(side="left")
+        self.company_logo_path = tk.StringVar(value=settings.get("company_logo_path", ""))
+        self.logo_preview_label = ttk.Label(logo_row)
+        self.logo_preview_label.pack(side="left", padx=(0, 8))
+        button_col = ttk.Frame(logo_row)
+        button_col.pack(side="left")
+        ttk.Button(button_col, text="Browse...", command=self.browse_logo).pack(anchor="w")
+        ttk.Button(button_col, text="Clear (use template default)", command=self.clear_logo).pack(anchor="w", pady=(2, 0))
+        self._logo_preview_image = None  # keep a reference so Tk doesn't garbage-collect it
+        self.update_logo_preview()
+        ttk.Label(form, text="Replaces the logo on the statement, fit to the same fixed size the "
+                               "template uses -- any image works, it won't be stretched out of shape.",
+                  foreground="#666", wraplength=560, justify="left").pack(anchor="w", pady=(0, 4))
+
         self.remember_company = tk.BooleanVar(value=True)
-        ttk.Checkbutton(form, text="Remember these company fields for next time",
+        ttk.Checkbutton(form, text="Remember these company fields (including the logo) for next time",
                          variable=self.remember_company).pack(anchor="w", pady=(2, 8))
 
         # -- bill to -----------------------------------------------------
@@ -255,25 +277,25 @@ class BillingApp(ttk.Frame):
         section(form, "Account Summary")
         self.previous_balance = LabeledEntry(form, "Previous Balance", "0.00")
         self.previous_balance.pack(fill="x", pady=2)
-        self.payments_credits = LabeledEntry(form, "Payments / Credits", "0.00")
-        self.payments_credits.pack(fill="x", pady=2)
         self.past_due = LabeledEntry(form, "Past Due", "0.00")
         self.past_due.pack(fill="x", pady=2)
 
         computed_row = ttk.Frame(form)
         computed_row.pack(fill="x", pady=(4, 8))
-        ttk.Label(computed_row, text="New Charges and Amount Due are calculated from the "
-                                       "Statement Activity lines below.", foreground="#666").pack(anchor="w")
-        self.computed_label = ttk.Label(computed_row, text="New Charges: $0.00     Amount Due: $0.00",
-                                          font=("", 10, "bold"))
+        ttk.Label(computed_row, text="Payments/Credits and New Charges are always the sums of the "
+                                       "Statement Activity lines below -- they can't drift out of sync "
+                                       "with what's on the table. Amount Due updates live.",
+                  foreground="#666", wraplength=560, justify="left").pack(anchor="w")
+        self.computed_label = ttk.Label(
+            computed_row,
+            text="Payments/Credits: $0.00     New Charges: $0.00     Amount Due: $0.00",
+            font=("", 10, "bold"))
         self.computed_label.pack(anchor="w", pady=(2, 0))
 
         # -- statement activity ---------------------------------------------
         section(form, "Statement Activity")
-        self.activity = ActivityTable(form)
+        self.activity = ActivityTable(form, on_change=self.recalculate)
         self.activity.pack(fill="x", pady=2)
-        ttk.Button(form, text="Recalculate totals above from these lines",
-                   command=self.recalculate).pack(anchor="w", pady=(4, 8))
 
         # -- payment information -------------------------------------------
         section(form, "Payment Information")
@@ -299,30 +321,39 @@ class BillingApp(ttk.Frame):
         ttk.Button(action_row, text="Generate Statement...", command=self.generate).pack(side="left")
         ttk.Button(action_row, text="Reset Form", command=self.reset_form).pack(side="left", padx=(8, 0))
 
+        # Wired last, once every widget collect_data()/recalculate() touch
+        # actually exists. previous_balance is the only manually-typed
+        # field the totals depend on; the activity table drives its own
+        # recalculate() via the on_change callback given to ActivityTable above.
+        self.previous_balance.var.trace_add("write", lambda *a: self.recalculate())
+        self.recalculate()
+
     # -- behavior -------------------------------------------------------------
 
     def recalculate(self):
+        """Recomputes payments_credits/new_charges/amount_due via
+        statement_builder.compute_totals -- the exact same function
+        generate() uses -- so the live preview and the generated document
+        can never disagree. Silently leaves the last good display alone if
+        a field is mid-edit and not parseable yet (e.g. a lone "-" while
+        typing a negative number) rather than popping an error on every
+        keystroke; Generate still validates loudly."""
         try:
-            previous_balance = parse_money(self.previous_balance.get(), "Previous Balance")
-            payments_credits = parse_money(self.payments_credits.get(), "Payments / Credits")
-        except ValueError as exc:
-            messagebox.showerror(APP_NAME, str(exc))
-            return
-        new_charges = self.activity.total_charges()
-        amount_due = previous_balance - payments_credits + new_charges
+            data = self.collect_data()
+        except ValueError:
+            return None
         self.computed_label.configure(
-            text=f"New Charges: ${new_charges:,.2f}     Amount Due: ${amount_due:,.2f}"
+            text=f"Payments/Credits: {money(data.payments_credits)}     "
+                  f"New Charges: {money(data.new_charges)}     "
+                  f"Amount Due: {money(data.amount_due)}"
         )
-        return new_charges, amount_due
+        return data
 
     def collect_data(self) -> StatementData:
         previous_balance = parse_money(self.previous_balance.get(), "Previous Balance")
-        payments_credits = parse_money(self.payments_credits.get(), "Payments / Credits")
         past_due = parse_money(self.past_due.get(), "Past Due")
-        new_charges = self.activity.total_charges()
-        amount_due = previous_balance - payments_credits + new_charges
 
-        return StatementData(
+        data = StatementData(
             statement_number=self.statement_number.get(),
             statement_date=self.statement_date.get(),
             company_name=self.company_name.get() or "COASTAL HPC",
@@ -330,6 +361,7 @@ class BillingApp(ttk.Frame):
             company_phone=self.company_phone.get(),
             company_email=self.company_email.get(),
             company_website=self.company_website.get(),
+            company_logo_path=self.company_logo_path.get().strip() or None,
             customer_name=self.customer_name.get(),
             contact_name=self.contact_name.get(),
             billing_address=self.billing_address.get(),
@@ -337,10 +369,7 @@ class BillingApp(ttk.Frame):
             customer_email=self.customer_email.get(),
             customer_phone=self.customer_phone.get(),
             previous_balance=previous_balance,
-            payments_credits=payments_credits,
-            new_charges=new_charges,
             past_due=past_due,
-            amount_due=amount_due,
             activity=self.activity.get_lines(),
             payment_methods=self.payment_methods.get(),
             payable_to=self.payable_to.get() or "Coastal HPC",
@@ -348,6 +377,8 @@ class BillingApp(ttk.Frame):
             payment_due_date=self.payment_due_date.get(),
             notes_terms=self.notes_terms.get(),
         )
+        compute_totals(data)
+        return data
 
     def generate(self):
         if not self.customer_name.get():
@@ -382,6 +413,7 @@ class BillingApp(ttk.Frame):
                 "company_phone": data.company_phone,
                 "company_email": data.company_email,
                 "company_website": data.company_website,
+                "company_logo_path": data.company_logo_path or "",
                 "payable_to": data.payable_to,
                 "last_statement_number": data.statement_number,
             })
@@ -395,13 +427,53 @@ class BillingApp(ttk.Frame):
             for entry in (self.customer_name, self.contact_name, self.billing_address,
                           self.customer_city_state_zip, self.customer_email, self.customer_phone):
                 entry.set("")
-            for entry in (self.previous_balance, self.payments_credits, self.past_due):
+            for entry in (self.previous_balance, self.past_due):
                 entry.set("0.00")
             for item in self.activity.tree.get_children():
                 self.activity.tree.delete(item)
             self.payment_instructions.set("")
             self.notes_terms.set("")
             self.recalculate()
+
+    def browse_logo(self):
+        path = filedialog.askopenfilename(
+            title="Choose a company logo",
+            filetypes=[("Image files", "*.png *.jpg *.jpeg *.bmp *.gif"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            with Image.open(path):
+                pass  # just confirm PIL can read it before committing to it
+        except Exception as exc:
+            messagebox.showerror(APP_NAME, f"Could not read that image file:\n{exc}")
+            return
+        self.company_logo_path.set(path)
+        self.update_logo_preview()
+
+    def clear_logo(self):
+        self.company_logo_path.set("")
+        self.update_logo_preview()
+
+    def update_logo_preview(self):
+        path = self.company_logo_path.get().strip()
+        box = (110, 74)
+        if not path:
+            self.logo_preview_label.configure(image="", text="(template default)")
+            self._logo_preview_image = None
+            return
+        try:
+            with Image.open(path) as img:
+                preview = img.convert("RGBA")
+                scale = min(box[0] / preview.width, box[1] / preview.height)
+                size = (max(1, round(preview.width * scale)), max(1, round(preview.height * scale)))
+                preview = preview.resize(size, Image.LANCZOS)
+        except Exception:
+            self.logo_preview_label.configure(image="", text="(could not preview)")
+            self._logo_preview_image = None
+            return
+        self._logo_preview_image = ImageTk.PhotoImage(preview)
+        self.logo_preview_label.configure(image=self._logo_preview_image, text="")
 
 
 def section(parent, title: str) -> None:

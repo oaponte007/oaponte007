@@ -19,12 +19,21 @@ breaks.
 
 from __future__ import annotations
 
+import io
+import os
+import shutil
+import tempfile
+import zipfile
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import date
-from typing import List, Optional
+from pathlib import Path
+from typing import List, Optional, Tuple
 
 import docx
+from PIL import Image
+
+LOGO_MEDIA_PATH = "word/media/image1.png"  # the only image in the template: the logo
 
 
 @dataclass
@@ -57,16 +66,26 @@ class StatementData:
     customer_email: str = ""
     customer_phone: str = ""
 
-    # account summary (previous_balance/payments_credits/past_due entered;
-    # new_charges/amount_due are normally computed by the GUI before this
-    # is called, but can be overridden)
+    # account summary. previous_balance and past_due are the only figures
+    # entered by hand (they come from your books, not from this form).
+    # payments_credits/new_charges/amount_due are ALWAYS derived from the
+    # activity list by compute_totals() below -- never set them directly,
+    # or they can silently disagree with what the activity table shows
+    # (this is exactly the bug reported against the first draft: a
+    # separately-typed Payments/Credits number that didn't reflect a
+    # payment entered as an activity line).
     previous_balance: float = 0.0
+    past_due: float = 0.0
     payments_credits: float = 0.0
     new_charges: float = 0.0
-    past_due: float = 0.0
     amount_due: float = 0.0
 
     activity: List[ActivityLine] = field(default_factory=list)
+
+    # Path to a company logo image (PNG/JPG/etc.) to swap into the
+    # template in place of its default logo, at the exact same on-page
+    # size. Leave None/empty to keep the template's own logo untouched.
+    company_logo_path: Optional[str] = None
 
     payment_methods: str = "ACH / Check / Card / Online"
     payable_to: str = "Coastal HPC"
@@ -82,11 +101,15 @@ def money(value: float) -> str:
 
 
 def compute_totals(data: StatementData) -> None:
-    """Fills new_charges/amount_due from the activity lines + entered
-    previous balance/payments/credits. Called by the GUI's "Recalculate"
-    action and again just before writing, so it's always internally
-    consistent even if the user edited fields out of order."""
+    """Derives payments_credits/new_charges/amount_due from the activity
+    lines + the entered previous balance. This is the single source of
+    truth for the math -- called live by the GUI on every edit and again
+    just before writing, so the displayed numbers and the generated
+    document can never disagree, and a payment entered as an activity
+    line always reduces the amount due (correctly going negative -- a
+    credit balance -- if payments exceed the balance plus new charges)."""
     data.new_charges = sum(a.charge or 0.0 for a in data.activity)
+    data.payments_credits = sum(a.payment or 0.0 for a in data.activity)
     data.amount_due = data.previous_balance - data.payments_credits + data.new_charges
 
 
@@ -148,6 +171,70 @@ def clone_row_before(table, template_row_index: int, before_row_index: int):
 def remove_row(table, row_index: int) -> None:
     tr = table.rows[row_index]._tr
     tr.getparent().remove(tr)
+
+
+# ---------------------------------------------------------------------------
+# company logo swap
+# ---------------------------------------------------------------------------
+
+def _read_media_pixel_size(docx_path: str, media_path: str) -> Tuple[int, int]:
+    with zipfile.ZipFile(docx_path, "r") as z:
+        raw = z.read(media_path)
+    with Image.open(io.BytesIO(raw)) as img:
+        return img.size
+
+
+def compose_logo_png(logo_source_path: str, canvas_size: Tuple[int, int]) -> bytes:
+    """Fits `logo_source_path` onto a transparent canvas of exactly
+    `canvas_size` pixels, preserving the logo's own aspect ratio (never
+    stretched/distorted) and centering it. `canvas_size` is the template's
+    *existing* logo image's own pixel size, whose aspect ratio already
+    matches the fixed on-page box (the <wp:extent> in the drawing XML) --
+    so any logo composed onto a same-sized canvas fills that exact same
+    box when it replaces the original image file."""
+    canvas_w, canvas_h = canvas_size
+    with Image.open(logo_source_path) as src:
+        logo = src.convert("RGBA")
+        scale = min(canvas_w / logo.width, canvas_h / logo.height)
+        new_w = max(1, round(logo.width * scale))
+        new_h = max(1, round(logo.height * scale))
+        logo = logo.resize((new_w, new_h), Image.LANCZOS)
+
+    canvas = Image.new("RGBA", (canvas_w, canvas_h), (255, 255, 255, 0))
+    offset = ((canvas_w - new_w) // 2, (canvas_h - new_h) // 2)
+    canvas.paste(logo, offset, logo)
+    buf = io.BytesIO()
+    canvas.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def replace_logo(docx_path: str, logo_source_path: str, media_path: str = LOGO_MEDIA_PATH) -> None:
+    """Swaps the template's embedded logo image for `logo_source_path`,
+    composed onto a canvas matching the original logo's own pixel size
+    (see compose_logo_png) -- so it fills the exact same fixed box on the
+    page, whatever the new logo's native dimensions/aspect ratio are.
+
+    Done as a post-save zip edit rather than through python-docx: the
+    on-page size lives in the drawing's <wp:extent>/<a:ext> XML, which we
+    never touch, so swapping only the raster bytes behind the existing
+    relationship is both sufficient and the least risky way to do this.
+    """
+    canvas_size = _read_media_pixel_size(docx_path, media_path)
+    new_bytes = compose_logo_png(logo_source_path, canvas_size)
+
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".docx", dir=str(Path(docx_path).parent))
+    os.close(tmp_fd)
+    try:
+        with zipfile.ZipFile(docx_path, "r") as zin, \
+                zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                data = new_bytes if item.filename == media_path else zin.read(item.filename)
+                zout.writestr(item, data)
+        shutil.move(tmp_path, docx_path)
+    except Exception:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -250,3 +337,6 @@ def build_statement(template_path: str, data: StatementData, output_path: str) -
             break
 
     doc.save(output_path)
+
+    if data.company_logo_path:
+        replace_logo(output_path, data.company_logo_path)
