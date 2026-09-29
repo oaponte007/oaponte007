@@ -1,0 +1,13 @@
+{
+  "id": "mount_validation",
+  "title": "Mount Point / Free-Space Validation",
+  "description": "Verifies expected mount points are present, writable, and have at least a minimum amount of free space -- exits non-zero (health-check friendly) if any check fails, so it can feed into chpc, NHC, or a cron alert.",
+  "tags": ["mount", "filesystem", "disk", "space", "free", "health", "check", "validation", "nfs", "scratch", "home"],
+  "variables": [
+    {"name": "MOUNT_LIST", "prompt": "Mount points to check, space-separated (e.g. /home /scratch)", "type": "string", "default": "/home /scratch"},
+    {"name": "MIN_FREE_PERCENT", "prompt": "Minimum free space required, as a percent (0 to skip the free-space check)", "type": "int", "default": 10, "min": 0, "max": 100}
+  ],
+  "toggles": [
+    {"name": "CHECK_WRITABLE", "prompt": "Also verify each mount is writable (creates and removes a small temp file)", "default": true}
+  ]
+}

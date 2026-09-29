@@ -1,0 +1,23 @@
+{
+  "id": "retry_wrapper",
+  "title": "Retry a Command with Backoff",
+  "description": "Wraps any command in a retry loop with fixed or exponential backoff and a max-attempts cap -- the standard workaround for flaky network mounts, a service that isn't up yet, or a transient scheduler/API call.",
+  "tags": ["retry", "backoff", "flaky", "transient", "resilience", "wrapper", "workaround", "exponential"],
+  "variables": [
+    {"name": "COMMAND_DESCRIPTION", "prompt": "One-line description of the command being retried (for log messages)", "type": "string", "default": "the command"},
+    {"name": "COMMAND_TO_RUN", "prompt": "The exact command to run (quote it exactly as you would type it yourself)", "type": "string", "default": "echo \"replace me\""},
+    {"name": "MAX_ATTEMPTS", "prompt": "Maximum number of attempts", "type": "int", "default": 5, "min": 1, "max": 100},
+    {"name": "INITIAL_DELAY_SECONDS", "prompt": "Delay before the first retry, in seconds", "type": "int", "default": 2, "min": 1, "max": 3600}
+  ],
+  "toggle_groups": [
+    {
+      "name": "BACKOFF_MODE",
+      "prompt": "Backoff style between retries",
+      "default": "exponential",
+      "options": [
+        {"value": "fixed", "label": "fixed delay every time", "toggle": "FIXED_DELAY"},
+        {"value": "exponential", "label": "exponential (delay doubles each retry)", "toggle": "EXPONENTIAL_DELAY"}
+      ]
+    }
+  ]
+}

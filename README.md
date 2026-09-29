@@ -24,6 +24,14 @@ so an admin doesn't get stuck babysitting an endless
 > custom-executor driver), on top of GitLab Runner. See
 > `JACAMAR_CI_SETUP.md` — including which parts to double-check against
 > your own Jacamar CI version before a production run.
+>
+> **And [`chpc_bash_helper`](CHPC_BASH_HELPER_MANUAL.md)** — builds bash
+> scripts on a fully airgapped machine (no network, no AI model) from a
+> library of 16 vetted templates (node drain/resume, backups, cron/systemd
+> timers, retry/wait-for/lockfile wrappers, RHEL-or-Debian package/firewall
+> baselines, ...), adapted to your situation by answering a short series
+> of choices, or by describing what you want in plain English to find the
+> right template to start from. See `CHPC_BASH_HELPER_MANUAL.md`.
 
 ## How it decides what to do
 

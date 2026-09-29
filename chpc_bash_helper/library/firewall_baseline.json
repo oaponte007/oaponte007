@@ -1,0 +1,21 @@
+{
+  "id": "firewall_baseline",
+  "title": "Apply a Firewall Baseline (firewalld or ufw)",
+  "description": "Idempotently opens a list of ports/services on firewalld (RHEL/Rocky) or ufw (Debian) and leaves everything else alone -- a quick way to apply the same baseline ruleset across mixed-OS nodes.",
+  "tags": ["firewall", "firewalld", "ufw", "ports", "security", "baseline", "rhel", "debian"],
+  "variables": [
+    {"name": "ALLOWED_SERVICES", "prompt": "firewalld service names to allow, space-separated (only used for firewalld); e.g. 'ssh nfs'", "type": "string", "default": "ssh", "allow_empty": true},
+    {"name": "ALLOWED_PORTS", "prompt": "Extra ports to allow, space-separated, each as PORT/PROTO (e.g. '6817/tcp 6818/tcp')", "type": "string", "default": "", "allow_empty": true}
+  ],
+  "toggle_groups": [
+    {
+      "name": "OS_FAMILY",
+      "prompt": "OS family",
+      "default": "rhel",
+      "options": [
+        {"value": "rhel", "label": "RHEL / Rocky (firewalld)", "toggle": "USE_FIREWALLD"},
+        {"value": "debian", "label": "Debian (ufw)", "toggle": "USE_UFW"}
+      ]
+    }
+  ]
+}

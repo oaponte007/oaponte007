@@ -1,0 +1,13 @@
+{
+  "id": "diag_snapshot",
+  "title": "Support/Diagnostics Snapshot Bundle",
+  "description": "Collects environment info, dmesg, journalctl, disk, network, process list, and (if present) Slurm/PBS status into one timestamped tarball -- for attaching to a support ticket or archiving before/after a change, works fully offline.",
+  "tags": ["diagnostics", "support", "bundle", "snapshot", "dmesg", "journalctl", "sysinfo", "troubleshooting", "environment"],
+  "variables": [
+    {"name": "OUTPUT_DIR", "prompt": "Directory to write the snapshot tarball into", "type": "path", "default": "/tmp"}
+  ],
+  "toggles": [
+    {"name": "INCLUDE_JOURNAL", "prompt": "Include the last 500 lines of the systemd journal", "default": true},
+    {"name": "INCLUDE_SCHEDULER_STATUS", "prompt": "Include Slurm/PBS status output, if either is installed", "default": true}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "user_provision",
+  "title": "Provision a User Account (with optional SSH key)",
+  "description": "Creates or updates a Linux user account, optionally adding it to a group and installing an SSH public key into authorized_keys -- the repetitive part of onboarding a new cluster user by hand.",
+  "tags": ["user", "account", "useradd", "usermod", "ssh", "key", "authorized_keys", "onboarding", "provisioning"],
+  "variables": [
+    {"name": "USERNAME", "prompt": "Username to create/update", "type": "string", "default": "newuser"},
+    {"name": "PRIMARY_GROUP", "prompt": "Group to add the user to (leave empty for none)", "type": "string", "default": "", "allow_empty": true},
+    {"name": "SSH_PUBLIC_KEY", "prompt": "SSH public key to install (paste the full line, or leave empty to skip)", "type": "string", "default": "", "allow_empty": true}
+  ],
+  "toggles": [
+    {"name": "DISABLE_PASSWORD_LOGIN", "prompt": "Disable password login for this account (SSH key only)", "default": true}
+  ]
+}

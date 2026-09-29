@@ -1,0 +1,14 @@
+{
+  "id": "log_archive",
+  "title": "Archive/Rotate Old Logs",
+  "description": "Tars and gzips log files older than N days out of a directory into a timestamped archive, optionally deleting the originals after a successful archive -- for logs that aren't already covered by logrotate.",
+  "tags": ["logs", "rotate", "archive", "tar", "gzip", "retention", "cleanup", "logrotate"],
+  "variables": [
+    {"name": "LOG_DIR", "prompt": "Directory containing the logs", "type": "path", "default": "/var/log/myapp"},
+    {"name": "MAX_AGE_DAYS", "prompt": "Archive files older than this many days", "type": "int", "default": 30, "min": 0, "max": 3650},
+    {"name": "ARCHIVE_DIR", "prompt": "Directory to write the .tar.gz archive into", "type": "path", "default": "/var/log/myapp/archive"}
+  ],
+  "toggles": [
+    {"name": "DELETE_ORIGINALS", "prompt": "Delete the original files after a successful archive", "default": true}
+  ]
+}

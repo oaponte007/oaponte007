@@ -1,0 +1,22 @@
+{
+  "id": "lockfile_singleton",
+  "title": "Single-Instance Lock (flock) Wrapper",
+  "description": "Ensures only one copy of a script runs at a time using flock -- the standard fix for cron jobs or health checks that can overlap and step on each other if one run takes longer than the schedule interval.",
+  "tags": ["lock", "flock", "singleton", "concurrency", "cron", "overlap", "mutex", "pidfile"],
+  "variables": [
+    {"name": "LOCK_FILE_PATH", "prompt": "Path to the lock file", "type": "path", "default": "/var/lock/my-script.lock"},
+    {"name": "COMMAND_DESCRIPTION", "prompt": "One-line description of the work being guarded (for log messages)", "type": "string", "default": "the guarded task"},
+    {"name": "COMMAND_TO_RUN", "prompt": "The exact command (or script) to run while holding the lock", "type": "string", "default": "echo \"replace me\""}
+  ],
+  "toggle_groups": [
+    {
+      "name": "LOCK_MODE",
+      "prompt": "If another instance is already running",
+      "default": "skip",
+      "options": [
+        {"value": "skip", "label": "exit immediately without waiting", "toggle": "LOCK_SKIP"},
+        {"value": "wait", "label": "wait for it to finish, then run anyway", "toggle": "LOCK_WAIT"}
+      ]
+    }
+  ]
+}
