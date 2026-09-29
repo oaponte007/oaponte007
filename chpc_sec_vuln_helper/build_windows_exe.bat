@@ -18,7 +18,7 @@ REM connected machine first, copy the wheels\ folder here, and change the
 REM two "pip install" lines below to
 REM "pip install --no-index --find-links wheels pyinstaller python-docx".
 
-setlocal
+setlocal enabledelayedexpansion
 cd /d "%~dp0.."
 echo Working directory: %CD%
 echo (this should be the OUTER folder -- the one that CONTAINS a
@@ -35,7 +35,7 @@ if errorlevel 1 (
 
 if not exist "chpc_sec_vuln_helper\windows_launcher.py" (
     echo ERROR: chpc_sec_vuln_helper\windows_launcher.py not found under
-    echo %CD%
+    echo !CD!
     echo This script must be run from where it sits, one level below the
     echo folder that contains chpc_sec_vuln_helper -- if you extracted a
     echo zip, check whether there's a second chpc_sec_vuln_helper folder
