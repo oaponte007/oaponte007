@@ -15,6 +15,13 @@ company's info, logo, color, and font choices are saved locally on
 never anywhere shared, so two different companies running the same copy
 of this program each just set it up once for themselves.
 
+The *program itself* carries Coastal HPC's own branding regardless of who
+runs it — its window/taskbar icon and the `.exe` file's own icon are
+Coastal HPC's logo (`coastal_hpc_logo.png`), separate from whatever logo a
+customer sets for their own generated statements. **This file isn't
+committed yet** — see `coastal_hpc_logo.png`'s row in Files below for how
+to add it; the build degrades gracefully (a default/no icon) until it is.
+
 ## Running it (no build required)
 
 You don't have to build an `.exe` at all — Python from
@@ -39,40 +46,87 @@ Linux/Mac). It installs `pyinstaller` and produces
 `dist\Coastal HPC Billing Statement Builder.exe`, a single file you can
 copy anywhere and double-click; the template is bundled inside it.
 
-## "Windows protected your PC" / flagged as dangerous
+No Windows machine handy? `.github/workflows/build-billing-exe.yml`
+builds it on a GitHub-hosted Windows runner on every push to this folder
+and uploads it as a workflow artifact — good for your own testing, but
+see the next section before handing that particular download to a
+customer.
 
-Expected, not a sign anything's wrong: this `.exe` is unsigned (no
-publisher certificate) and freshly built, so Windows SmartScreen and some
-antivirus engines default to a warning for it — the same as almost any
-small, unsigned tool built with PyInstaller. It has no reputation history
-yet purely because nobody's run *this exact build* before.
+## Giving this to customers: cut a release, don't hand out a raw build
 
-**To run it anyway (do this once per download):**
-1. Right-click the downloaded `.zip` → **Properties** → check **Unblock**
-   at the bottom → **OK**. *Then* extract it — unblocking after
-   extraction means unblocking the `.exe` itself the same way instead.
-2. If you still get a blue "Windows protected your PC" screen when running
-   it: click **More info**, then **Run anyway**.
-3. If Microsoft Defender quarantines it instead: Windows Security → Virus
-   & threat protection → Protection history → find it → **Actions** →
-   **Restore** (only do this because you trust where it came from and can
-   read the source yourself — `statement_builder.py`/`billing_app.py` are
-   plain, readable Python, not obfuscated).
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
-**What actually removes the warning for everyone, permanently:** signing
-the exe with a purchased code-signing certificate (roughly $70–500/year
-from a CA like DigiCert/Sectigo/SSL.com, or Azure Trusted Signing as a
-cheaper subscription alternative) and running `signtool sign` on it as
-part of the build. That requires buying and holding a real certificate
-under Coastal HPC's identity, which isn't something that can be done from
-here — but the CI build is ready to wire up a signing step the moment
-there's a certificate to use it with.
+pushing a `v*` tag runs `.github/workflows/release-billing-exe.yml`,
+which builds the exe once and publishes it as a **GitHub Release** asset
+— a stable `github.com` URL that doesn't expire, and (unlike the
+per-push artifact) the exact same file every time, so it's the one to
+actually send customers to. Bump the version and re-tag (`v1.0.1`, …)
+only when you mean to ship a real update — see the next section for why
+that matters.
 
-The `.exe` now also carries real version metadata (Company/Product/File
+## "This file is dangerous" — Chrome / Google Safe Browsing, and Windows
+
+There are actually **two separate systems** that can flag this, and it's
+worth knowing which one a customer hit, because the fix differs slightly:
+
+- **Chrome's own download warning** ("This file is dangerous" / "Chrome
+  blocked this file because it could harm your device") is **Google Safe
+  Browsing**, evaluated the moment the file is *downloaded* — before
+  Windows ever sees it. It's driven by the file's hash reputation and the
+  download URL's reputation, not by anything Windows-specific.
+- **Windows SmartScreen / Defender** evaluates separately, when the
+  `.exe` is *run*, using its own reputation system.
+
+Both boil down to the same root cause — **an unsigned, freshly-built
+file has zero reputation anywhere the first time anyone sees its exact
+bytes** — but that also means both share the same real fixes, and one of
+them is something already fixed here:
+
+**1. Distribute a stable, versioned release, not a fresh CI artifact
+every time.** This was the biggest actual problem: every push was
+producing a *brand-new* `.exe` (PyInstaller embeds a build timestamp, so
+the file's hash changes every single build) downloaded from a temporary,
+auto-expiring Actions-artifact blob URL that Google/Microsoft have never
+seen before and never will again — that's close to the worst-case shape
+for triggering both systems, independent of anything actually in the
+file. Fixed: pushing a version tag (`git tag v1.0.0 && git push origin
+v1.0.0`) now builds the exe once and publishes it as a **GitHub Release**
+asset instead — a permanent URL on `github.com` itself (a long-established,
+generally-trusted domain), and critically, the *same file* every time
+customers download that release, so real reputation can actually
+accumulate across everyone who downloads and runs it, instead of resetting
+to zero on every code change. Don't re-tag/re-release for every tweak —
+cut a new version only when you actually mean to ship an update.
+
+**2. Sign it.** This is the actual permanent fix for both systems at
+once, immediately, without waiting on reputation to build up: a purchased
+code-signing certificate (roughly $70–500/year from a CA like
+DigiCert/Sectigo/SSL.com, or Azure Trusted Signing as a cheaper
+subscription) run through `signtool sign` as part of the build. That
+needs buying and holding a real certificate under Coastal HPC's identity
+— not something obtainable from here — but the release workflow is ready
+to add a signing step the moment there's a certificate to use.
+
+**For anyone who hits the warning before either of those is in place:**
+- Chrome: click the download's **⌵** menu → **Keep** (or **Keep
+  dangerous file**) if you trust the source.
+- Windows, running the exe: **More info** → **Run anyway** on the blue
+  "Windows protected your PC" screen; or if Defender quarantines it,
+  Windows Security → Virus & threat protection → Protection history →
+  **Restore**.
+- Either way, that's a judgment call for whoever's running it to make
+  about the source — not something to talk anyone into blindly; the
+  source here is plain, readable Python (`statement_builder.py`/
+  `billing_app.py`), not obfuscated, if anyone wants to check for
+  themselves first.
+
+The `.exe` also carries real version metadata (Company/Product/File
 description, visible under right-click → Properties → Details) instead of
-shipping blank — good practice regardless, though it does not by itself
-stop the SmartScreen warning, which is reputation-based, not
-metadata-based.
+shipping blank — good practice, though on its own it doesn't move either
+system's warning; reputation and signing are what actually do.
 
 ## Using it
 
@@ -145,7 +199,10 @@ next customer, but keeps your company info.
 | `statement_builder.py` | Document-filling logic, kept separate from the GUI so it's usable/testable on its own. |
 | `theme.py` | The 5 color themes and 5 fonts, and the code that applies a chosen one to a python-docx `Document`. |
 | `Jo-Wayne_Billing_Statement_Template.docx` | The base template — logo, layout, and branding come from here unchanged. |
-| `requirements.txt` | Dependencies: `python-docx` and `Pillow` (Pillow composites a custom logo onto the template's fixed-size logo box). |
+| `coastal_hpc_logo.png` | Coastal HPC's own logo — this app's identity, shown as the window/taskbar icon and the `.exe` file icon. Separate from a *customer's* own logo (which goes in a generated statement, set via the in-app Company Logo picker) and from the template's Jo-Wayne logo (which prints on the statement itself). |
+| `decode_assets.py` | Decodes every committed `*.b64` binary asset (the docx template, the logo) back into its real file, if not already present — used at build time and by the app itself the first time it runs from a plain checkout. |
+| `make_icon.py` | Builds `app_icon.ico` (a proper multi-resolution Windows icon: 16–256px) from `coastal_hpc_logo.png`, padded onto a square canvas so nothing about the logo art is cropped. Skips gracefully (no error) if the logo isn't present. |
+| `requirements.txt` | Dependencies: `python-docx` and `Pillow` (Pillow composites a custom logo onto the template's fixed-size logo box, and builds `app_icon.ico`). |
 | `build_windows_exe.bat` | Builds the standalone `.exe` (run on Windows). |
 | `version_info.txt` | PyInstaller version resource (Company/Product/File description) embedded in the `.exe`'s Properties. |
 | `test_gui_smoke.py` | A headless test that drives the actual GUI (fills fields, adds/removes activity lines, generates a document) and checks the result — run with `pip install python-docx` then `python test_gui_smoke.py` (needs a display, or `xvfb-run` on Linux) if you change the code and want to re-verify it. |

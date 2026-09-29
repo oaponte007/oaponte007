@@ -176,5 +176,25 @@ assert "Coastal HPC" not in (data.company_name or "")
 assert data.payable_to == ""  # left blank; statement_builder decides the fallback text
 print("blank company/payee fields don't default to a different company's name")
 
+# -- app's own identity icon (window/taskbar): must never crash the app if
+#    the logo asset isn't there, and must actually set one when it is -----
+import billing_app as _billing_app
+
+logo_path = _billing_app.resource_path(_billing_app.LOGO_FILENAME)
+had_logo_before = os.path.exists(logo_path)
+if not had_logo_before:
+    _billing_app.set_window_icon(root)
+    assert getattr(root, "_coastal_hpc_icon_ref", None) is None
+    print("set_window_icon() with no logo asset present: no crash, no-op -- OK")
+
+Image.new("RGB", (200, 180), (10, 40, 90)).save(logo_path)
+try:
+    _billing_app.set_window_icon(root)
+    assert getattr(root, "_coastal_hpc_icon_ref", None) is not None
+    print("set_window_icon() with a logo present: icon ref set -- OK")
+finally:
+    if not had_logo_before:
+        os.remove(logo_path)
+
 print("ALL GUI SMOKE CHECKS PASSED")
 root.destroy()

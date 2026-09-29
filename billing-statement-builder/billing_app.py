@@ -11,6 +11,7 @@ build_windows_exe.bat / README.md.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
@@ -25,6 +26,9 @@ from statement_builder import ActivityLine, StatementData, build_statement, comp
 
 APP_NAME = "Coastal HPC Billing Statement Builder"
 TEMPLATE_FILENAME = "Jo-Wayne_Billing_Statement_Template.docx"
+LOGO_FILENAME = "coastal_hpc_logo.png"  # the app's own identity/window icon,
+                                          # distinct from a customer's own
+                                          # swappable statement logo below
 
 
 def resource_path(relative: str) -> str:
@@ -33,6 +37,26 @@ def resource_path(relative: str) -> str:
     dir named in sys._MEIPASS)."""
     base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base, relative)
+
+
+def ensure_decoded(filename: str) -> str:
+    """Like resource_path(), but if the real file isn't there yet, decodes
+    it from a neighboring `<filename>.b64` first. Binary assets (the docx
+    template, the app logo) are committed to the repo as base64 text so a
+    Windows checkout's line-ending conversion can never corrupt them (see
+    README) -- this is what turns that safe storage format back into the
+    real file the first time it's needed when running as a plain script.
+    A no-op when packaged into the .exe, since the build already decoded
+    everything before pyinstaller bundled it."""
+    path = resource_path(filename)
+    if not os.path.exists(path):
+        b64_path = path + ".b64"
+        if os.path.exists(b64_path):
+            with open(b64_path, "r", encoding="ascii") as f:
+                data = base64.b64decode(f.read())
+            with open(path, "wb") as f:
+                f.write(data)
+    return path
 
 
 def settings_path() -> str:
@@ -422,7 +446,7 @@ class BillingApp(ttk.Frame):
             return
 
         try:
-            build_statement(resource_path(TEMPLATE_FILENAME), data, out_path)
+            build_statement(ensure_decoded(TEMPLATE_FILENAME), data, out_path)
         except Exception as exc:  # a bad template path/permissions error, etc.
             messagebox.showerror(APP_NAME, f"Could not build the statement:\n{exc}")
             return
@@ -516,10 +540,24 @@ def open_file(path: str) -> None:
         pass
 
 
+def set_window_icon(root: tk.Tk) -> None:
+    """Sets the window/taskbar icon to the Coastal HPC logo. Branding is
+    cosmetic -- a missing or unreadable logo file must never stop the app
+    from starting, so any failure here is swallowed rather than raised."""
+    try:
+        logo_path = ensure_decoded(LOGO_FILENAME)
+        icon_image = ImageTk.PhotoImage(Image.open(logo_path))
+        root.iconphoto(True, icon_image)
+        root._coastal_hpc_icon_ref = icon_image  # keep a reference; Tk drops it otherwise
+    except Exception:
+        pass
+
+
 def main():
     root = tk.Tk()
     root.title(APP_NAME)
     root.geometry("720x760")
+    set_window_icon(root)
     BillingApp(root)
     root.mainloop()
 

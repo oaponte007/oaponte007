@@ -1,14 +1,28 @@
-name: Build Billing Statement Builder exe
+name: Release Billing Statement Builder
+
+# Deliberately separate from build-billing-exe.yml (which builds a fresh
+# exe as a throwaway workflow artifact on every push, for our own dev
+# iteration) rather than sharing one workflow gated by ref type: a version
+# tag should always build and publish regardless of which paths changed,
+# and GitHub's push-trigger `paths` filter is unreliable for tag pushes
+# (a tag pointing at an already-pushed commit has no useful diff to filter
+# on), so mixing the two triggers in one `on.push` block is a known
+# footgun. This is the one that produces the stable, customer-facing
+# download: see README's "This file is dangerous" section for why a
+# fresh build on every push (the *other* workflow) is close to the worst
+# case for browser/Windows reputation warnings, and a single, repeatedly-
+# downloaded release asset is the fix that doesn't require a certificate.
 
 "on":
   push:
-    paths:
-      - "billing-statement-builder/**"
-      - ".github/workflows/build-billing-exe.yml"
-  workflow_dispatch: {}
+    tags:
+      - "v*"
+
+permissions:
+  contents: write  # softprops/action-gh-release needs this to create the release
 
 jobs:
-  build:
+  release:
     runs-on: windows-latest
     defaults:
       run:
@@ -49,8 +63,8 @@ jobs:
             @extraArgs `
             billing_app.py
 
-      - uses: actions/upload-artifact@v4
+      - name: Publish GitHub Release with the exe attached
+        uses: softprops/action-gh-release@v2
         with:
-          name: CoastalHPCBillingStatementBuilder-windows-exe
-          path: "billing-statement-builder/dist/Coastal HPC Billing Statement Builder.exe"
-          if-no-files-found: error
+          files: "billing-statement-builder/dist/Coastal HPC Billing Statement Builder.exe"
+          generate_release_notes: true
