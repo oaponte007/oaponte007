@@ -57,8 +57,9 @@ if errorlevel 1 (
 echo.
 echo Building chpc-sec-vuln-helper.exe ...
 py -3 -m PyInstaller --onefile --name chpc-sec-vuln-helper ^
+    --paths . ^
     --add-data "chpc_sec_vuln_helper\collectors\windows_collector.ps1;chpc_sec_vuln_helper\collectors" ^
-    chpc_sec_vuln_helper\windows_launcher.py
+    chpc_sec_vuln_helper\_exe_entry.py
 
 if errorlevel 1 (
     echo.
