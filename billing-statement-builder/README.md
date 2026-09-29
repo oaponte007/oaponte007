@@ -5,8 +5,15 @@ template needs — statement info, your company info, the customer, account
 summary, statement activity line items, payment info, and notes/terms —
 then generates a filled-in `.docx` for that customer, using
 `Jo-Wayne_Billing_Statement_Template.docx` as the base (layout and
-branding stay exactly as in the template; the logo can be swapped per
-company, everything else is placeholder text and numbers being filled in).
+branding stay exactly as in the template; the logo, color theme, and font
+can all be swapped per company, everything else is placeholder text and
+numbers being filled in).
+
+This is meant to be handed to whoever will actually use it — each
+company's info, logo, color, and font choices are saved locally on
+*their* machine (`%APPDATA%\CoastalHPC\billing_builder_settings.json`),
+never anywhere shared, so two different companies running the same copy
+of this program each just set it up once for themselves.
 
 ## Running it (no build required)
 
@@ -35,7 +42,7 @@ copy anywhere and double-click; the template is bundled inside it.
 ## Using it
 
 1. **Statement** — statement number and date.
-2. **Your Company (Coastal HPC)** — address/phone/email/website, plus a
+2. **Your Company** — address/phone/email/website, plus a
    **Company Logo**: click **Browse...** to pick any image (PNG/JPG/etc.)
    and it replaces the template's logo, scaled to fit the exact same fixed
    box the original logo occupies — the new logo's own aspect ratio is
@@ -47,6 +54,27 @@ copy anywhere and double-click; the template is bundled inside it.
    this folder, so it survives moving/rebuilding the app) — handy if you
    run this for more than one company/brand, since each just re-picks its
    own logo once.
+
+   Right below the logo, **Color Theme** and **Font** let each customer
+   restyle the whole statement without touching a template file:
+
+   | Color Theme | Font |
+   |---|---|
+   | Coastal Blue (default) — the template's own navy/cyan | Arial (default) |
+   | Forest Green | Calibri |
+   | Burgundy Red | Georgia |
+   | Slate Purple | Times New Roman |
+   | Sunset Orange | Verdana |
+
+   A color theme recolors every header bar, section title, and accent
+   label consistently (it's built from the template's own two brand
+   colors, so picking a theme never leaves one element the old color by
+   accident); ordinary body text and plain row backgrounds stay neutral
+   in every theme, the same way the original does. A font applies to the
+   *entire* document — heading, table contents, and the footer — and all
+   five choices are fonts Windows already has, so the `.docx` never
+   substitutes a missing font on someone else's machine. Both are
+   remembered the same way the logo is.
 3. **Bill To** — the customer being billed.
 4. **Account Summary** — enter **Previous Balance** and **Past Due**
    yourself (those come from your books, not from this form).
@@ -80,6 +108,7 @@ next customer, but keeps your company info.
 |---|---|
 | `billing_app.py` | The Tkinter GUI — the actual "program." |
 | `statement_builder.py` | Document-filling logic, kept separate from the GUI so it's usable/testable on its own. |
+| `theme.py` | The 5 color themes and 5 fonts, and the code that applies a chosen one to a python-docx `Document`. |
 | `Jo-Wayne_Billing_Statement_Template.docx` | The base template — logo, layout, and branding come from here unchanged. |
 | `requirements.txt` | Dependencies: `python-docx` and `Pillow` (Pillow composites a custom logo onto the template's fixed-size logo box). |
 | `build_windows_exe.bat` | Builds the standalone `.exe` (run on Windows). |

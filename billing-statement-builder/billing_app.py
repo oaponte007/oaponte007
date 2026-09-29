@@ -20,6 +20,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from PIL import Image, ImageTk
 
+import theme
 from statement_builder import ActivityLine, StatementData, build_statement, compute_totals, money
 
 APP_NAME = "Coastal HPC Billing Statement Builder"
@@ -226,8 +227,8 @@ class BillingApp(ttk.Frame):
         self.statement_date.pack(fill="x", pady=2)
 
         # -- your company -------------------------------------------------
-        section(form, "Your Company (Coastal HPC)")
-        self.company_name = LabeledEntry(form, "Company Name", settings.get("company_name", "COASTAL HPC"))
+        section(form, "Your Company")
+        self.company_name = LabeledEntry(form, "Company Name", settings.get("company_name", ""))
         self.company_name.pack(fill="x", pady=2)
         self.company_address = LabeledEntry(form, "City, State ZIP", settings.get("company_address", ""))
         self.company_address.pack(fill="x", pady=2)
@@ -254,8 +255,26 @@ class BillingApp(ttk.Frame):
                                "template uses -- any image works, it won't be stretched out of shape.",
                   foreground="#666", wraplength=560, justify="left").pack(anchor="w", pady=(0, 4))
 
+        theme_row = ttk.Frame(form)
+        theme_row.pack(fill="x", pady=2)
+        ttk.Label(theme_row, text="Color Theme", width=22, anchor="w").pack(side="left")
+        saved_theme = settings.get("color_theme", theme.DEFAULT_COLOR_THEME)
+        self.color_theme_var = tk.StringVar(
+            value=saved_theme if saved_theme in theme.COLOR_THEMES else theme.DEFAULT_COLOR_THEME)
+        ttk.Combobox(theme_row, textvariable=self.color_theme_var, state="readonly", width=28,
+                     values=list(theme.COLOR_THEMES.keys())).pack(side="left")
+
+        font_row = ttk.Frame(form)
+        font_row.pack(fill="x", pady=2)
+        ttk.Label(font_row, text="Font", width=22, anchor="w").pack(side="left")
+        saved_font = settings.get("font_choice", theme.DEFAULT_FONT)
+        self.font_choice_var = tk.StringVar(
+            value=saved_font if saved_font in theme.FONT_CHOICES else theme.DEFAULT_FONT)
+        ttk.Combobox(font_row, textvariable=self.font_choice_var, state="readonly", width=28,
+                     values=list(theme.FONT_CHOICES.keys())).pack(side="left")
+
         self.remember_company = tk.BooleanVar(value=True)
-        ttk.Checkbutton(form, text="Remember these company fields (including the logo) for next time",
+        ttk.Checkbutton(form, text="Remember these company fields (including logo, color, and font) for next time",
                          variable=self.remember_company).pack(anchor="w", pady=(2, 8))
 
         # -- bill to -----------------------------------------------------
@@ -301,7 +320,7 @@ class BillingApp(ttk.Frame):
         section(form, "Payment Information")
         self.payment_methods = LabeledEntry(form, "Payment Methods", "ACH / Check / Card / Online")
         self.payment_methods.pack(fill="x", pady=2)
-        self.payable_to = LabeledEntry(form, "Make Checks Payable To", settings.get("payable_to", "Coastal HPC"))
+        self.payable_to = LabeledEntry(form, "Make Checks Payable To", settings.get("payable_to", ""))
         self.payable_to.pack(fill="x", pady=2)
         self.payment_instructions = LabeledText(form, "Payment Link / Instructions", height=2)
         self.payment_instructions.pack(fill="x", pady=2)
@@ -356,7 +375,7 @@ class BillingApp(ttk.Frame):
         data = StatementData(
             statement_number=self.statement_number.get(),
             statement_date=self.statement_date.get(),
-            company_name=self.company_name.get() or "COASTAL HPC",
+            company_name=self.company_name.get(),
             company_address=self.company_address.get(),
             company_phone=self.company_phone.get(),
             company_email=self.company_email.get(),
@@ -372,10 +391,12 @@ class BillingApp(ttk.Frame):
             past_due=past_due,
             activity=self.activity.get_lines(),
             payment_methods=self.payment_methods.get(),
-            payable_to=self.payable_to.get() or "Coastal HPC",
+            payable_to=self.payable_to.get(),
             payment_instructions=self.payment_instructions.get(),
             payment_due_date=self.payment_due_date.get(),
             notes_terms=self.notes_terms.get(),
+            color_theme=self.color_theme_var.get(),
+            font_choice=self.font_choice_var.get(),
         )
         compute_totals(data)
         return data
@@ -415,6 +436,8 @@ class BillingApp(ttk.Frame):
                 "company_website": data.company_website,
                 "company_logo_path": data.company_logo_path or "",
                 "payable_to": data.payable_to,
+                "color_theme": data.color_theme,
+                "font_choice": data.font_choice,
                 "last_statement_number": data.statement_number,
             })
 

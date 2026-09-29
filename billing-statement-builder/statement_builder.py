@@ -33,6 +33,8 @@ from typing import List, Optional, Tuple
 import docx
 from PIL import Image
 
+import theme
+
 LOGO_MEDIA_PATH = "word/media/image1.png"  # the only image in the template: the logo
 
 
@@ -51,8 +53,9 @@ class StatementData:
     statement_number: str = ""
     statement_date: str = ""
 
-    # your company (Coastal HPC)
-    company_name: str = "COASTAL HPC"
+    # your company -- this tool is distributed to different customers, so
+    # nothing here defaults to a specific company's own name/branding.
+    company_name: str = ""
     company_address: str = ""
     company_phone: str = ""
     company_email: str = ""
@@ -87,8 +90,13 @@ class StatementData:
     # size. Leave None/empty to keep the template's own logo untouched.
     company_logo_path: Optional[str] = None
 
+    # Keys into theme.COLOR_THEMES / theme.FONT_CHOICES. Either default
+    # reproduces the template's original look exactly.
+    color_theme: str = "Coastal Blue (default)"
+    font_choice: str = "Arial (default)"
+
     payment_methods: str = "ACH / Check / Card / Online"
-    payable_to: str = "Coastal HPC"
+    payable_to: str = ""
     payment_instructions: str = ""
     payment_due_date: str = ""
 
@@ -255,7 +263,7 @@ def build_statement(template_path: str, data: StatementData, output_path: str) -
 
     # --- table 1: your company (left) / bill to (right) ---------------
     company_cell = tables[1].rows[0].cells[0]
-    set_paragraph_text(company_cell.paragraphs[0], data.company_name or "COASTAL HPC")
+    set_paragraph_text(company_cell.paragraphs[0], data.company_name or "YOUR COMPANY")
     phone_email = "  |  ".join(v for v in (data.company_phone, data.company_email) if v)
     replace_in_cell(company_cell, {
         "[City, State ZIP]": data.company_address or "",
@@ -315,7 +323,7 @@ def build_statement(template_path: str, data: StatementData, output_path: str) -
     payment_info_cell = tables[4].rows[0].cells[0]
     replace_in_cell(payment_info_cell, {
         "[ACH / Check / Card / Online]": data.payment_methods or "",
-        "Coastal HPC": data.payable_to or "Coastal HPC",
+        "Coastal HPC": data.payable_to or data.company_name or "Coastal HPC",
         "[Insert payment instructions]": data.payment_instructions or "",
     })
 
@@ -335,6 +343,13 @@ def build_statement(template_path: str, data: StatementData, output_path: str) -
         if placeholder in p.text:
             set_paragraph_text(p, data.notes_terms or "")
             break
+
+    # --- look & feel: color theme + font, applied last so they restyle
+    # every placeholder we just filled in too, not just the template shell --
+    primary_hex, accent_hex = theme.COLOR_THEMES.get(
+        data.color_theme, theme.COLOR_THEMES[theme.DEFAULT_COLOR_THEME])
+    theme.apply_color_theme(doc, primary_hex, accent_hex)
+    theme.apply_font(doc, theme.FONT_CHOICES.get(data.font_choice, theme.FONT_CHOICES[theme.DEFAULT_FONT]))
 
     doc.save(output_path)
 

@@ -136,5 +136,45 @@ data = app.collect_data()
 assert data.company_logo_path is None
 print("clear_logo() resets to template default")
 
+# -- color theme + font dropdowns: pick a non-default of each through the
+#    real widget variables (as a Combobox selection would), generate, and
+#    confirm the document actually reflects both -------------------------
+import docx as _docx
+from docx.oxml.ns import qn as _qn
+import theme as _theme
+
+app.company_name.set("Acme Fabrication")
+app.color_theme_var.set("Burgundy Red")
+app.font_choice_var.set("Georgia")
+data = app.collect_data()
+assert data.color_theme == "Burgundy Red"
+assert data.font_choice == "Georgia"
+
+out2 = "/tmp/billing_tool_theme_smoke_output.docx"
+build_statement(os.path.join(os.path.dirname(__file__), "Jo-Wayne_Billing_Statement_Template.docx"),
+                data, out2)
+d2 = _docx.Document(out2)
+header_fill = d2.tables[2].rows[0].cells[0]._tc.tcPr.find(_qn('w:shd')).get(_qn('w:fill'))
+expected_primary, _ = _theme.COLOR_THEMES["Burgundy Red"]
+assert header_fill.upper() == expected_primary.upper(), header_fill
+heading_font = None
+for p in d2.tables[0].rows[0].cells[1].paragraphs:
+    for r in p.runs:
+        if "BILLING" in r.text:
+            heading_font = r.font.name
+assert heading_font == "Georgia", heading_font
+print("GUI-driven theme/font selection reflected in generated document:",
+      header_fill, heading_font)
+os.remove(out2)
+
+# -- defaults must never default to a DIFFERENT real company's name/payee
+#    now that this app is meant to be handed to other customers ----------
+app.company_name.set("")
+app.payable_to.set("")
+data = app.collect_data()
+assert "Coastal HPC" not in (data.company_name or "")
+assert data.payable_to == ""  # left blank; statement_builder decides the fallback text
+print("blank company/payee fields don't default to a different company's name")
+
 print("ALL GUI SMOKE CHECKS PASSED")
 root.destroy()
