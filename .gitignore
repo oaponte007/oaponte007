@@ -6,3 +6,10 @@ build/
 dist/
 .venv/
 *.db
+
+# billing-statement-builder: binary assets are committed as base64 text
+# (*.b64) and decoded/generated on demand -- the real binaries and the
+# generated icon are build/run-time products, never committed directly.
+billing-statement-builder/Jo-Wayne_Billing_Statement_Template.docx
+billing-statement-builder/coastal_hpc_logo.png
+billing-statement-builder/app_icon.ico

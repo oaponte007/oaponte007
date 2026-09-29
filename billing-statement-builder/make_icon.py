@@ -3,12 +3,13 @@ Coastal HPC logo. Run before pyinstaller in build_windows_exe.bat and
 both GitHub Actions workflows, so the logic lives in one place instead of
 being copy-pasted into three build scripts.
 
-The source logo is a wide mark+wordmark lockup, not pre-cropped to a
-square, so nothing about the actual artwork is guessed at or cropped:
-it's padded onto a square white canvas (matching its own background) and
-Pillow downsamples that into every icon size Windows actually uses. At
-very small sizes (16x16) a full mark+wordmark logo reads as a blurry
-color blob rather than crisp detail -- normal and expected for a
+The source logo is a wide mark+wordmark lockup on a transparent
+background, not pre-cropped to a square, so nothing about the actual
+artwork is guessed at or cropped: it's padded onto a square *transparent*
+canvas (preserving that transparency rather than flattening it onto
+white) and Pillow downsamples that into every icon size Windows actually
+uses. At very small sizes (16x16) a full mark+wordmark logo reads as a
+blurry color blob rather than crisp detail -- normal and expected for a
 non-icon-specific source logo, not a bug in this script.
 """
 
@@ -40,7 +41,7 @@ def build_icon() -> Path | None:
     with Image.open(LOGO_PNG) as img:
         img = img.convert("RGBA")
         side = max(img.width, img.height)
-        canvas = Image.new("RGBA", (side, side), (255, 255, 255, 255))
+        canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
         offset = ((side - img.width) // 2, (side - img.height) // 2)
         canvas.paste(img, offset, img)
         canvas.save(ICON_OUT, format="ICO", sizes=ICON_SIZES)

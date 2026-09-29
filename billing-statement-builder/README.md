@@ -18,9 +18,7 @@ of this program each just set it up once for themselves.
 The *program itself* carries Coastal HPC's own branding regardless of who
 runs it — its window/taskbar icon and the `.exe` file's own icon are
 Coastal HPC's logo (`coastal_hpc_logo.png`), separate from whatever logo a
-customer sets for their own generated statements. **This file isn't
-committed yet** — see `coastal_hpc_logo.png`'s row in Files below for how
-to add it; the build degrades gracefully (a default/no icon) until it is.
+customer sets for their own generated statements.
 
 ## Running it (no build required)
 
@@ -201,7 +199,7 @@ next customer, but keeps your company info.
 | `Jo-Wayne_Billing_Statement_Template.docx` | The base template — logo, layout, and branding come from here unchanged. |
 | `coastal_hpc_logo.png` | Coastal HPC's own logo — this app's identity, shown as the window/taskbar icon and the `.exe` file icon. Separate from a *customer's* own logo (which goes in a generated statement, set via the in-app Company Logo picker) and from the template's Jo-Wayne logo (which prints on the statement itself). |
 | `decode_assets.py` | Decodes every committed `*.b64` binary asset (the docx template, the logo) back into its real file, if not already present — used at build time and by the app itself the first time it runs from a plain checkout. |
-| `make_icon.py` | Builds `app_icon.ico` (a proper multi-resolution Windows icon: 16–256px) from `coastal_hpc_logo.png`, padded onto a square canvas so nothing about the logo art is cropped. Skips gracefully (no error) if the logo isn't present. |
+| `make_icon.py` | Builds `app_icon.ico` (a proper multi-resolution Windows icon: 16–256px) from `coastal_hpc_logo.png`, padded onto a transparent square canvas (the logo's own background) so nothing about the logo art is cropped or flattened onto white. Skips gracefully (no error) if the logo asset is ever removed. |
 | `requirements.txt` | Dependencies: `python-docx` and `Pillow` (Pillow composites a custom logo onto the template's fixed-size logo box, and builds `app_icon.ico`). |
 | `build_windows_exe.bat` | Builds the standalone `.exe` (run on Windows). |
 | `version_info.txt` | PyInstaller version resource (Company/Product/File description) embedded in the `.exe`'s Properties. |
