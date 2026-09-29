@@ -1,0 +1,155 @@
+.TH CHPC-BASH-HELPER 1 "2026-09-29" "CHPC_bash_helper 0.1.0" "Coastal HPC"
+.SH NAME
+chpc-bash-helper \- build bash scripts for airgapped RHEL/Rocky/Debian systems from a vetted template library
+.SH SYNOPSIS
+.B python3 -m chpc_bash_helper
+.I command
+.RI [ arguments ... ]
+.br
+.B chpc-bash-helper
+.I command
+.RI [ arguments ... ]
+.SH DESCRIPTION
+.B chpc-bash-helper
+builds bash scripts on a machine with no network access and no AI model
+involved at all. You either pick a template from its library and answer
+a short series of questions, or describe what you want in plain English
+and let it match your description against the library by keyword
+overlap.
+.PP
+Every generated script is checked with
+.B bash -n
+(a syntax-only parse; nothing is ever executed) before it is written to
+disk. Nothing here reaches the network on its own.
+.PP
+The tool itself is pure Python 3 standard library and runs on Windows,
+RHEL, Rocky, and Debian alike. The scripts it generates are bash, meant
+for your Linux targets; two templates
+.RI ( package_baseline ", " firewall_baseline )
+explicitly support both the RHEL/Rocky
+.RI ( dnf / yum ", " firewalld )
+and Debian
+.RI ( apt ", " ufw )
+command sets.
+.SH COMMANDS
+.TP
+.B list
+List every template in the library: its id, title, description, and
+tags.
+.TP
+.BI show " template-id " "[--raw]"
+Show what a template asks \(em its variables, yes/no toggles, and
+multiple-choice groups \(em without generating anything. With
+.BR --raw ,
+also print the template's raw, unrendered text.
+.TP
+.BI describe " \(dqdescription\(dq"
+Rank every template by plain keyword overlap between
+.I description
+and each template's tags and title/description text, best match first.
+Purely deterministic string matching; no model is involved.
+.TP
+.BI build " template-id " "[options]"
+Build a script from
+.IR template-id .
+With no
+.BR --var / --toggle / --toggle-group / --yes
+flags, runs an interactive wizard that asks each question in turn,
+shows a summary, and writes the script only after you confirm. With any
+of those flags present, runs non-interactively instead, using supplied
+values and falling back to each question's declared default for
+anything not supplied.
+.SH OPTIONS FOR "BUILD"
+.TP
+.BI --out " path"
+Where to write the generated script. Defaults to
+.IR template-id .sh
+in the current directory.
+.TP
+.BI --var " NAME=VALUE"
+Answer one variable non-interactively. Repeatable.
+.TP
+.BI --toggle " NAME=on|off"
+Answer one yes/no toggle non-interactively. Repeatable.
+.TP
+.BI --toggle-group " NAME=VALUE"
+Answer one multiple-choice group non-interactively, by the option's
+value (see \fBshow\fP). Repeatable.
+.TP
+.B --yes
+Accept every default and run non-interactively, even with no
+.B --var / --toggle / --toggle-group
+given.
+.SH EXAMPLES
+List everything available:
+.PP
+.RS
+.EX
+python3 -m chpc_bash_helper list
+.EE
+.RE
+.PP
+Find the right template from a description:
+.PP
+.RS
+.EX
+python3 -m chpc_bash_helper describe "drain a node and note why"
+.EE
+.RE
+.PP
+Build it interactively:
+.PP
+.RS
+.EX
+python3 -m chpc_bash_helper build node_drain_resume
+.EE
+.RE
+.PP
+Build it non-interactively, for a repeatable/scripted run:
+.PP
+.RS
+.EX
+python3 -m chpc_bash_helper build node_drain_resume \e
+    --var "NODE_LIST=node042" \e
+    --var "REASON=Low RealMemory investigation" \e
+    --toggle "REQUIRE_CONFIRMATION=off" \e
+    --toggle-group "SCHEDULER=slurm" \e
+    --toggle-group "ACTION=drain" \e
+    --out node042_drain.sh
+.EE
+.RE
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+An unknown template id, a malformed
+.BR --var / --toggle / --toggle-group
+value, a template failed its
+.B bash -n
+check, or the interactive wizard was cancelled (declined the final
+"write it now?" prompt, or input ended early).
+.SH FILES
+.TP
+.I chpc_bash_helper/library/*.json
+Template metadata: title, description, tags, and declared
+variables/toggles/toggle_groups.
+.TP
+.I chpc_bash_helper/library/*.sh.tmpl
+The matching raw bash template text for each
+.I *.json
+file, with
+.B {{VARIABLE}}
+and
+.B {{#TOGGLE}}...{{/TOGGLE}}
+placeholders.
+.SH SEE ALSO
+The full manual,
+.IR CHPC_BASH_HELPER_MANUAL.md ,
+and this package's own
+.IR README.md ,
+both shipped alongside this tool, cover adding new templates to the
+library and the full command reference in more detail than fits here.
+.SH AUTHOR
+Coastal HPC.

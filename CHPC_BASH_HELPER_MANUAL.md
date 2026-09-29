@@ -38,6 +38,14 @@ Copy the whole `chpc_bash_helper/` folder over (however you move files
 onto that box today — that part is unchanged). Nothing needs `pip
 install`; everything imported is Python's standard library.
 
+The folder is self-contained and carries its own docs, so once it's
+copied over you don't need the rest of this repo:
+[`chpc_bash_helper/README.md`](chpc_bash_helper/README.md) has
+per-OS (RHEL/Rocky/Debian/Windows) install steps, and
+[`chpc_bash_helper/man/chpc-bash-helper.1`](chpc_bash_helper/man/chpc-bash-helper.1)
+is a real Unix man page (`man -l chpc_bash_helper/man/chpc-bash-helper.1`,
+or install it system-wide — see the README).
+
 ## Running it
 
 ```bash
