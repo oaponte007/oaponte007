@@ -219,5 +219,11 @@ $result = [PSCustomObject]@{
 }
 
 $json = $result | ConvertTo-Json -Depth 6
-Set-Content -Path $OutputPath -Value $json -Encoding UTF8
+# Windows PowerShell 5.1's `-Encoding UTF8` writes a UTF-8 byte-order-mark
+# (BOM), which Python's json module does not strip -- it would fail to
+# parse this file with "Expecting value: line 1 column 1 (char 0)". Write
+# via .NET directly with a BOM-less UTF8 encoding so the file is readable
+# on both Windows PowerShell 5.1 and PowerShell 7+.
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($OutputPath, $json, $utf8NoBom)
 Write-Host "Wrote $OutputPath ($($warnings.Count) warning(s))."

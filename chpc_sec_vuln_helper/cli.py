@@ -80,7 +80,10 @@ def cmd_list_feeds(args: argparse.Namespace) -> int:
 
 def _load_collected(path: Path) -> dict:
     import json
-    return json.loads(path.read_text())
+    # utf-8-sig transparently strips a leading UTF-8 BOM if present (e.g.
+    # from Windows PowerShell 5.1's `-Encoding UTF8`) and behaves exactly
+    # like plain utf-8 when there isn't one -- safe either way.
+    return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
 def cmd_scan(args: argparse.Namespace) -> int:

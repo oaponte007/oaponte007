@@ -95,6 +95,27 @@ def test_scan_with_no_feed_only_reports_baseline_findings(tmp_path, capsys):
     assert "publicly documented security hole" not in text  # no CVE finding without a feed
 
 
+def test_scan_reads_collected_json_with_utf8_bom(tmp_path, capsys):
+    # Windows PowerShell 5.1's `Set-Content -Encoding UTF8` prepends a
+    # UTF-8 byte-order-mark; make sure `scan` still parses a file like that
+    # instead of raising json.JSONDecodeError("Expecting value", ...).
+    collected_path = tmp_path / "collected.json"
+    _write_collected(collected_path)
+    raw = collected_path.read_bytes()
+    collected_path.write_bytes(b"\xef\xbb\xbf" + raw)
+
+    out_base = tmp_path / "report"
+    rc = _run([
+        "scan", str(collected_path),
+        "--feed-dir", str(tmp_path / "feeds"),
+        "--out", str(out_base),
+        "--format", "html",
+        "--yes",
+    ])
+    assert rc == 0
+    assert out_base.with_suffix(".html").exists()
+
+
 def test_scan_unsupported_os_produces_no_crash(tmp_path):
     collected_path = tmp_path / "collected.json"
     _write_collected(collected_path, os={"family": "ubuntu", "name": "Ubuntu", "major_version": 24, "version_id": "24.04"})

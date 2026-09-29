@@ -77,11 +77,35 @@ Or use the launcher directly: `sudo chmod +x chpc_sec_vuln_helper/bin/chpc-sec-v
 
 ### On a Windows 10 or 11 target (collect)
 
-Run as Administrator for full coverage:
+Two ways to run this -- pick whichever you prefer, both do the same thing:
+
+**Command line (PowerShell), no build step:**
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File chpc_sec_vuln_helper\collectors\windows_collector.ps1 -OutputPath collected.json
 ```
+
+**Or a double-click `.exe`, no typing at all** -- a plain-text menu
+(collect / update feed / list feeds / scan) that runs the exact same code
+underneath, for anyone who'd rather not use a command line. Build it once
+(you need Python installed for this one-time step; the resulting `.exe`
+itself needs nothing else to run):
+
+```bat
+chpc_sec_vuln_helper\build_windows_exe.bat
+```
+
+This installs `pyinstaller` (and `python-docx`, so the `.exe` can build
+`.docx` reports too) and produces `dist\chpc-sec-vuln-helper.exe`. Copy
+that one file anywhere you like and double-click it from then on -- no
+PowerShell command, no Python, nothing to remember. A working `.exe` can
+only be built on a real Windows machine (there's no way to cross-compile
+one from Linux or Mac), which is why this repo ships the *build script*
+rather than a pre-built binary -- run it once on any Windows box with
+Python and internet access (or see the airgapped note in the script's
+header comment if that box has neither).
+
+Run as Administrator for full coverage, either way.
 
 ### Keeping the CVE feed current
 
@@ -162,6 +186,11 @@ which matters most for the actual airgap use case), and the report
 generators (both `.docx` and `.html`, including that a single advisory
 affecting multiple packages renders as one finding, not several
 near-duplicates).
+
+`windows_launcher.py` (the menu the `.exe` runs) is exercised by tests on
+Linux too, though only the parts that don't need PowerShell itself; the
+`.exe` build step (`build_windows_exe.bat`, PyInstaller) can't be run or
+verified in this environment at all -- spot-check it the same way.
 
 The `windows_collector.ps1` script could not be executed or
 syntax-tested in the Linux environment it was written in either --

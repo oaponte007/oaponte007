@@ -23,7 +23,12 @@ stdout).
 .I collect
 only works on Linux; on Windows, run
 .I collectors/windows_collector.ps1
-directly instead, with the same JSON output shape.
+directly instead, with the same JSON output shape \-\- or build
+.I chpc-sec-vuln-helper.exe
+(see
+.IR build_windows_exe.bat )
+for a double-click menu covering collect/update-feed/list-feeds/scan with
+no command line at all.
 .TP
 .BI update-feed " [options]"
 Fetch or import a vulnerability feed.
